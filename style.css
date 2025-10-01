@@ -718,6 +718,13 @@ dialog {
   border: 1px solid var(--border);
 }
 
+#loginDialog{
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
 dialog::backdrop {
   background: rgba(0, 0, 0, 0.7);
   backdrop-filter: blur(4px);
