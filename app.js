@@ -16,7 +16,6 @@ const firebaseConfig = {
 ============================ */
 firebase.initializeApp(firebaseConfig);
 
-// Enable offline persistence
 firebase.firestore().enablePersistence({ synchronizeTabs: true }).catch(err => {
   if (err.code !== 'failed-precondition' && err.code !== 'unimplemented') {
     console.warn('Persistence error:', err);
@@ -32,12 +31,100 @@ const db = firebase.firestore();
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
+/* ============================
+   PWA Service Worker Registration
+============================ */
+let deferredPrompt;
+let swRegistration = null;
+
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', async () => {
+    try {
+      swRegistration = await navigator.serviceWorker.register('/sw.js');
+      console.log('Service Worker registered:', swRegistration);
+      
+      swRegistration.addEventListener('updatefound', () => {
+        const newWorker = swRegistration.installing;
+        newWorker.addEventListener('statechange', () => {
+          if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
+            if (confirm('New version available! Reload to update?')) {
+              newWorker.postMessage({ type: 'SKIP_WAITING' });
+              window.location.reload();
+            }
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Service Worker registration failed:', error);
+    }
+  });
+  
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    window.location.reload();
+  });
+}
+
+/* ============================
+   PWA Install Prompt
+============================ */
+window.addEventListener('beforeinstallprompt', (e) => {
+  e.preventDefault();
+  deferredPrompt = e;
+  
+  const installBanner = $('#installBanner');
+  if (installBanner) {
+    installBanner.style.display = 'flex';
+  }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  const installBtn = $('#installBtn');
+  const dismissBtn = $('#dismissInstall');
+  const installBanner = $('#installBanner');
+  
+  if (installBtn) {
+    installBtn.addEventListener('click', async () => {
+      if (!deferredPrompt) return;
+      
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      
+      console.log(`User response to install prompt: ${outcome}`);
+      
+      deferredPrompt = null;
+      if (installBanner) {
+        installBanner.style.display = 'none';
+      }
+    });
+  }
+  
+  if (dismissBtn) {
+    dismissBtn.addEventListener('click', () => {
+      if (installBanner) {
+        installBanner.style.display = 'none';
+      }
+    });
+  }
+});
+
+window.addEventListener('appinstalled', () => {
+  console.log('PWA was installed');
+  const installBanner = $('#installBanner');
+  if (installBanner) {
+    installBanner.style.display = 'none';
+  }
+  
+  if ('Notification' in window && Notification.permission === 'default') {
+    Notification.requestPermission();
+  }
+});
+
+/* ============================
+   Helper Functions (continued)
+============================ */
 function escapeHtml(s) {
   return String(s).replace(/[&<>"]/g, c => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    "\"": "&quot;"
+    "&": "&amp;", "<": "&lt;", ">": "&gt;", "\"": "&quot;"
   })[c]);
 }
 
@@ -54,6 +141,11 @@ function fmtDate(d) {
   } catch {
     return d.toLocaleString();
   }
+}
+
+function getDayOfWeek(d) {
+  const days = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+  return days[d.getDay()];
 }
 
 function parseDue(dateStr, timeStr) {
@@ -77,26 +169,76 @@ function countdown(d) {
   return `${mm}m`;
 }
 
+function getWeekLabel(d) {
+  const now = new Date();
+  const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+  const taskDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  const diffDays = Math.floor((taskDate - today) / 86400000);
+  
+  if (diffDays < 0) return 'Overdue Tasks';
+  if (diffDays < 7) return 'This Week';
+  if (diffDays < 14) return 'Next Week';
+  if (diffDays < 21) return 'In 2 Weeks';
+  if (diffDays < 30) return 'In 3-4 Weeks';
+  return 'Later';
+}
+
 /* ============================
    Theme Management
 ============================ */
 function applyTheme(t) {
-  if (t === 'light') {
-    document.documentElement.classList.add('light');
-  } else {
-    document.documentElement.classList.remove('light');
-  }
+  document.documentElement.className = t;
   localStorage.setItem('theme', t);
 }
 
-// Apply saved theme on load
-applyTheme(localStorage.getItem('theme') || 'dark');
+applyTheme(localStorage.getItem('theme') || 'darkest');
 
-// Theme toggle button
-$('#toggleTheme').addEventListener('click', () => {
-  const currentTheme = localStorage.getItem('theme') || 'dark';
-  applyTheme(currentTheme === 'dark' ? 'light' : 'dark');
+const themeBtn = $('#themeBtn');
+const themeDropdown = $('#themeDropdown');
+
+themeBtn.addEventListener('click', (e) => {
+  e.stopPropagation();
+  themeDropdown.classList.toggle('active');
 });
+
+document.addEventListener('click', () => {
+  themeDropdown.classList.remove('active');
+});
+
+$$('#themeDropdown button').forEach(btn => {
+  btn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    const theme = btn.dataset.theme;
+    applyTheme(theme);
+    themeDropdown.classList.remove('active');
+  });
+});
+
+/* ============================
+   Preloader Tips
+============================ */
+const tips = [
+  'Break large tasks into smaller chunks',
+  'Review notes before starting assignments',
+  'Set reminders 24 hours before deadlines',
+  'Prioritize tasks by due date',
+  'Take regular breaks to stay focused',
+  'Enable notifications to never miss a deadline',
+  'Keep your task notes detailed and clear'
+];
+
+function rotateTips() {
+  const tipElement = $('#loaderTip');
+  if (tipElement) {
+    let index = 0;
+    setInterval(() => {
+      index = (index + 1) % tips.length;
+      tipElement.textContent = tips[index];
+    }, 3000);
+  }
+}
+
+rotateTips();
 
 /* ============================
    Authentication
@@ -138,11 +280,19 @@ auth.onAuthStateChanged(user => {
 });
 
 /* ============================
+   Timetable Feature
+============================ */
+$('#timetableBtn').addEventListener('click', () => {
+  window.open('timetable.html', '_blank');
+});
+
+/* ============================
    Data Management
 ============================ */
-const cards = $('#cards');
+const weeklyTasksContainer = $('#weeklyTasks');
 const adminTbody = $('#adminTbody');
 let dataLoaded = false;
+let lastUpdateTime = null;
 
 function sortStable(list) {
   return list.slice().sort((a, b) => {
@@ -151,6 +301,15 @@ function sortStable(list) {
     if (ta !== tb) return ta - tb;
     return (a.title || '').localeCompare(b.title || '');
   });
+}
+
+function updateLastUpdatedMessage() {
+  const updateTimeElement = $('#updateTime');
+  if (lastUpdateTime) {
+    updateTimeElement.textContent = `Last updated: ${fmtDate(lastUpdateTime)}`;
+  } else {
+    updateTimeElement.textContent = 'No updates yet';
+  }
 }
 
 /* ============================
@@ -162,7 +321,15 @@ db.collection('items')
     const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     window.__ALL_ITEMS__ = sortStable(all);
 
-    // Hide preloader on first real data load
+    if (all.length > 0 && !snap.metadata.fromCache) {
+      const latestUpdate = all.reduce((latest, item) => {
+        const itemUpdate = item.updatedAt?.toDate?.() || item.createdAt?.toDate?.() || new Date();
+        return itemUpdate > latest ? itemUpdate : latest;
+      }, new Date(0));
+      lastUpdateTime = latestUpdate;
+      updateLastUpdatedMessage();
+    }
+
     if (!dataLoaded && !snap.metadata.fromCache) {
       dataLoaded = true;
       setTimeout(() => {
@@ -170,7 +337,7 @@ db.collection('items')
       }, 500);
     }
 
-    renderCards();
+    renderWeeklyTasks();
     renderAdminTable();
   });
 
@@ -178,8 +345,8 @@ db.collection('items')
    Filters
 ============================ */
 ['#search', '#filterType'].forEach(sel => {
-  $(sel).addEventListener('input', renderCards);
-  $(sel).addEventListener('change', renderCards);
+  $(sel).addEventListener('input', renderWeeklyTasks);
+  $(sel).addEventListener('change', renderWeeklyTasks);
 });
 
 function filteredItems() {
@@ -187,7 +354,6 @@ function filteredItems() {
   const qText = $('#search').value.trim().toLowerCase();
   let arr = (window.__ALL_ITEMS__ || []).slice();
 
-  // Only show pending tasks
   arr = arr.filter(x => x.status === 'pending');
 
   if (fType !== 'all') {
@@ -203,56 +369,165 @@ function filteredItems() {
 }
 
 /* ============================
-   Render Cards
+   Task Modal Functionality
 ============================ */
-function renderCards() {
-  const list = filteredItems();
-  cards.innerHTML = '';
-  $('#emptyState').style.display = list.length ? 'none' : 'block';
-  
-  // Update task count
-  const totalTasks = (window.__ALL_ITEMS__ || []).length;
-  $('#taskCount').textContent = `${totalTasks} task${totalTasks !== 1 ? 's' : ''}`;
-  
-  const now = Date.now();
+const taskModal = $('#taskModal');
+const taskModalBody = $('#taskModalBody');
+const closeTaskModalBtn = $('#closeTaskModal');
 
-  for (const it of list) {
-    const due = it.dueAt && it.dueAt.toDate ? it.dueAt.toDate() : new Date(it.dueAt);
-    const overdue = (it.status !== 'completed') && (due.getTime() < now);
-    const soon = !overdue && (due.getTime() - now < 48 * 3600000);
+function openTaskModal(task) {
+  const due = task.dueAt && task.dueAt.toDate ? task.dueAt.toDate() : new Date(task.dueAt);
+  const overdue = (task.status !== 'completed') && (due.getTime() < Date.now());
+  const soon = !overdue && (due.getTime() - Date.now() < 48 * 3600000);
+  const badgeClass = task.type ? task.type.toLowerCase() : 'assignment';
+  const countdownClass = overdue ? 'overdue' : (soon ? 'soon' : 'safe');
+  const dayOfWeek = getDayOfWeek(due);
 
-    const badgeClass = it.type ? it.type.toLowerCase() : 'assignment';
-    const countdownClass = overdue ? 'overdue' : (soon ? 'soon' : 'safe');
-
-    const el = document.createElement('article');
-    el.className = 'card';
-    el.innerHTML = `
-      <div class="card-header">
-        <span class="badge ${badgeClass}">${it.type || '—'}</span>
-        <div class="card-actions">
-          ${auth.currentUser ? `<button class="icon-btn" data-del-card="${it.id}" title="Delete">🗑️</button>` : ''}
-        </div>
+  taskModalBody.innerHTML = `
+    <span class="badge ${badgeClass}">${task.type || '—'}</span>
+    <h2>${escapeHtml(task.title || 'Untitled')}</h2>
+    ${task.course ? `<div class="task-modal-course"> ${escapeHtml(task.course)}</div>` : ''}
+    ${task.notes ? `<div class="task-modal-notes">${escapeHtml(task.notes)}</div>` : '<div class="task-modal-notes">No additional notes</div>'}
+    
+    <div class="task-modal-info">
+      <div class="task-modal-info-item">
+        <div class="task-modal-info-label">Day</div>
+        <div class="task-modal-info-value">${dayOfWeek}</div>
       </div>
-      
-      <h3>${escapeHtml(it.title || 'Untitled')}</h3>
-      
-      ${it.course ? `<div class="card-course"> ${escapeHtml(it.course)}</div>` : ''}
-      
-      ${it.notes ? `<div class="card-notes">${escapeHtml(it.notes)}</div>` : ''}
-      
-      <div class="card-footer">
-        <div class="due-info">
-          Due: <strong>${fmtDate(due)}</strong>
-        </div>
-        <div class="countdown ${countdownClass}">
-          ${countdown(due)}
-        </div>
+      <div class="task-modal-info-item">
+        <div class="task-modal-info-label">Due Date</div>
+        <div class="task-modal-info-value">${fmtDate(due)}</div>
       </div>
-      
-      ${it.link ? `<a class="card-link" href="${escapeAttr(it.link)}" target="_blank" rel="noopener">🔗 Open Link</a>` : ''}
-    `;
-    cards.appendChild(el);
+      <div class="task-modal-info-item">
+        <div class="task-modal-info-label">Status</div>
+        <div class="task-modal-info-value countdown ${countdownClass}">${countdown(due)}</div>
+      </div>
+      <div class="task-modal-info-item">
+        <div class="task-modal-info-label">Type</div>
+        <div class="task-modal-info-value">${task.type || 'Assignment'}</div>
+      </div>
+    </div>
+    
+    ${task.link ? `<a class="task-modal-link" href="${escapeAttr(task.link)}" target="_blank" rel="noopener">🔗 Open Link</a>` : ''}
+  `;
+
+  taskModal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeTaskModal() {
+  taskModal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+closeTaskModalBtn.addEventListener('click', closeTaskModal);
+
+taskModal.addEventListener('click', (e) => {
+  if (e.target === taskModal) {
+    closeTaskModal();
   }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && taskModal.classList.contains('active')) {
+    closeTaskModal();
+  }
+});
+
+/* ============================
+   Render Weekly Tasks
+============================ */
+function renderWeeklyTasks() {
+  const list = filteredItems();
+  weeklyTasksContainer.innerHTML = '';
+  $('#emptyState').style.display = list.length ? 'none' : 'block';
+
+  if (list.length === 0) return;
+
+  const weekGroups = {};
+  
+  list.forEach(task => {
+    const due = task.dueAt && task.dueAt.toDate ? task.dueAt.toDate() : new Date(task.dueAt);
+    const weekLabel = getWeekLabel(due);
+    
+    if (!weekGroups[weekLabel]) {
+      weekGroups[weekLabel] = [];
+    }
+    weekGroups[weekLabel].push(task);
+  });
+
+  const weekOrder = ['Overdue Tasks', 'This Week', 'Next Week', 'In 2 Weeks', 'In 3-4 Weeks', 'Later'];
+  
+  weekOrder.forEach(weekLabel => {
+    if (weekGroups[weekLabel] && weekGroups[weekLabel].length > 0) {
+      const weekSection = document.createElement('div');
+      weekSection.className = 'week-group';
+      
+      const weekHeader = document.createElement('div');
+      weekHeader.className = 'week-header';
+      weekHeader.innerHTML = `
+        <div class="week-title">${weekLabel}</div>
+        <div class="week-count">${weekGroups[weekLabel].length} task${weekGroups[weekLabel].length !== 1 ? 's' : ''}</div>
+      `;
+      
+      const grid = document.createElement('div');
+      grid.className = 'grid';
+      
+      const now = Date.now();
+      
+      weekGroups[weekLabel].forEach(it => {
+        const due = it.dueAt && it.dueAt.toDate ? it.dueAt.toDate() : new Date(it.dueAt);
+        const overdue = (it.status !== 'completed') && (due.getTime() < now);
+        const soon = !overdue && (due.getTime() - now < 48 * 3600000);
+
+        const badgeClass = it.type ? it.type.toLowerCase() : 'assignment';
+        const countdownClass = overdue ? 'overdue' : (soon ? 'soon' : 'safe');
+        const dayOfWeek = getDayOfWeek(due);
+
+        const el = document.createElement('article');
+        el.className = 'card';
+        el.dataset.taskId = it.id;
+        el.innerHTML = `
+          <div class="card-header">
+            <span class="badge ${badgeClass}">${it.type || '—'}</span>
+            <div class="card-actions">
+              ${auth.currentUser ? `<button class="icon-btn" data-del-card="${it.id}" title="Delete">×</button>` : ''}
+            </div>
+          </div>
+          
+          <h3>${escapeHtml(it.title || 'Untitled')}</h3>
+          
+          ${it.course ? `<div class="card-course">${escapeHtml(it.course)}</div>` : ''}
+          
+          ${it.notes ? `<div class="card-notes">${escapeHtml(it.notes)}</div>` : ''}
+          
+          <div class="card-footer">
+            <div class="due-info">
+              <span class="due-day">${dayOfWeek}</span>
+              Due: <strong>${fmtDate(due)}</strong>
+            </div>
+            <div class="countdown ${countdownClass}">
+              ${countdown(due)}
+            </div>
+          </div>
+          
+          ${it.link ? `<a class="card-link" href="${escapeAttr(it.link)}" target="_blank" rel="noopener">Open Link</a>` : ''}
+        `;
+        
+        el.addEventListener('click', (e) => {
+          if (!e.target.closest('.icon-btn') && !e.target.closest('.card-link')) {
+            openTaskModal(it);
+          }
+        });
+        
+        grid.appendChild(el);
+      });
+      
+      weekSection.appendChild(weekHeader);
+      weekSection.appendChild(grid);
+      weeklyTasksContainer.appendChild(weekSection);
+    }
+  });
 }
 
 /* ============================
@@ -277,8 +552,8 @@ function renderAdminTable() {
       <td>${fmtDate(d)}</td>
       <td>
         <div class="table-actions">
-          <button class="btn secondary" data-edit="${it.id}">✏️ Edit</button>
-          <button class="btn danger" data-del="${it.id}">🗑️ Delete</button>
+          <button class="btn secondary" data-edit="${it.id}">Edit</button>
+          <button class="btn danger" data-del="${it.id}" title="Delete">×</button>
         </div>
       </td>
     `;
@@ -303,9 +578,8 @@ adminTbody.addEventListener('click', async (e) => {
       return;
     }
     if (confirm('Delete this item?')) {
-      // Optimistic UI update
       window.__ALL_ITEMS__ = (window.__ALL_ITEMS__ || []).filter(x => x.id !== idDel);
-      renderCards();
+      renderWeeklyTasks();
       renderAdminTable();
 
       try {
@@ -320,7 +594,7 @@ adminTbody.addEventListener('click', async (e) => {
 /* ============================
    Card Delete Action
 ============================ */
-cards.addEventListener('click', async (e) => {
+weeklyTasksContainer.addEventListener('click', async (e) => {
   const idDel = e.target.closest('[data-del-card]')?.getAttribute('data-del-card');
   if (!idDel) return;
 
@@ -331,9 +605,8 @@ cards.addEventListener('click', async (e) => {
 
   if (!confirm('Delete this item?')) return;
 
-  // Optimistic UI update
   window.__ALL_ITEMS__ = (window.__ALL_ITEMS__ || []).filter(x => x.id !== idDel);
-  renderCards();
+  renderWeeklyTasks();
   renderAdminTable();
 
   try {
@@ -369,7 +642,6 @@ function loadIntoForm(id) {
     deleteBtn.style.display = 'inline-block';
   }
 
-  // Scroll to form
   $('#itemForm').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
@@ -404,9 +676,8 @@ deleteBtn?.addEventListener('click', async () => {
 
   if (!confirm('Delete this item?')) return;
 
-  // Optimistic UI update
   window.__ALL_ITEMS__ = (window.__ALL_ITEMS__ || []).filter(x => x.id !== id);
-  renderCards();
+  renderWeeklyTasks();
   renderAdminTable();
 
   try {
@@ -437,7 +708,7 @@ $('#itemForm').addEventListener('submit', async (e) => {
     dueTime: $('#dueTime').value,
     link: $('#link').value.trim(),
     notes: $('#notes').value.trim(),
-    status: 'pending' // Always set to pending
+    status: 'pending'
   };
 
   const dueAt = parseDue(payload.dueDate, payload.dueTime);
@@ -446,7 +717,6 @@ $('#itemForm').addEventListener('submit', async (e) => {
     return;
   }
 
-  // Optimistic UI update
   const optimistic = { id: id || `__local_${Date.now()}`, ...payload, dueAt };
   const local = (window.__ALL_ITEMS__ || []).slice();
 
@@ -462,19 +732,17 @@ $('#itemForm').addEventListener('submit', async (e) => {
   }
 
   window.__ALL_ITEMS__ = sortStable(local);
-  renderCards();
+  renderWeeklyTasks();
   renderAdminTable();
 
   try {
     if (id) {
-      // Update existing item
       await db.collection('items').doc(id).set({
         ...payload,
         dueAt: dueAt,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } else {
-      // Create new item
       await db.collection('items').add({
         ...payload,
         dueAt: dueAt,
@@ -482,6 +750,9 @@ $('#itemForm').addEventListener('submit', async (e) => {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
+    
+    scheduleNotification(payload.title, dueAt);
+    
     fillForm();
   } catch (err) {
     alert('Save failed: ' + err.message);
@@ -489,9 +760,72 @@ $('#itemForm').addEventListener('submit', async (e) => {
 });
 
 /* ============================
+   Notification System
+============================ */
+async function scheduleNotification(title, dueDate) {
+  const notificationsEnabled = $('#enableNotifications')?.checked;
+  if (!notificationsEnabled) return;
+
+  const notificationTime = new Date(dueDate.getTime() - (12 * 60 * 60 * 1000));
+  const now = new Date();
+
+  if (notificationTime > now) {
+    if ('Notification' in window) {
+      let permission = Notification.permission;
+      
+      if (permission === 'default') {
+        permission = await Notification.requestPermission();
+      }
+      
+      if (permission === 'granted') {
+        if (swRegistration && swRegistration.active) {
+          swRegistration.active.postMessage({
+            type: 'SCHEDULE_NOTIFICATION',
+            payload: {
+              title: 'WorkBurst Reminder',
+              body: `Task "${title}" is due in 12 hours!`,
+              notificationTime: notificationTime.getTime(),
+              taskId: Date.now()
+            }
+          });
+          
+          console.log('Notification scheduled via service worker');
+        } else {
+          const timeUntilNotification = notificationTime.getTime() - now.getTime();
+          
+          setTimeout(() => {
+            new Notification('WorkBurst Reminder', {
+              body: `Task "${title}" is due in 12 hours!`,
+              icon: '/icons/icon-192x192.png',
+              badge: '/icons/icon-72x72.png',
+              vibrate: [200, 100, 200],
+              tag: 'task-reminder',
+              requireInteraction: true
+            });
+          }, timeUntilNotification);
+          
+          console.log('Notification scheduled via setTimeout');
+        }
+      }
+    }
+  }
+}
+
+$('#enableNotifications')?.addEventListener('change', async (e) => {
+  if (e.target.checked && 'Notification' in window) {
+    const permission = await Notification.requestPermission();
+    if (permission === 'granted') {
+      alert('Notifications enabled! You will receive reminders 12 hours before task deadlines.');
+    } else {
+      alert('Please enable notifications in your browser settings to receive reminders.');
+      e.target.checked = false;
+    }
+  }
+});
+
+/* ============================
    Fallback: Hide Preloader
 ============================ */
-// Hide preloader after 10 seconds as fallback
 setTimeout(() => {
   $('#preloader').classList.add('hidden');
 }, 10000);
