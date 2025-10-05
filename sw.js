@@ -3,16 +3,16 @@
    Handles caching and push notifications
 ============================ */
 
-const CACHE_NAME = 'workburst-v1.0.0';
+const CACHE_NAME = 'workburst-v1.0.1';
 const urlsToCache = [
-  '/',
-  '/index.html',
-  '/app.js',
-  '/style.css',
-  '/timetable.html',
-  '/timetable.css',
-  '/timetable.js',
-  '/manifest.json',
+  './',
+  './index.html',
+  './app.js',
+  './style.css',
+  './timetable.html',
+  './timetable.css',
+  './timetable.js',
+  './manifest.json',
   'https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap',
   'https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js',
   'https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js',
@@ -29,7 +29,11 @@ self.addEventListener('install', (event) => {
     caches.open(CACHE_NAME)
       .then((cache) => {
         console.log('[Service Worker] Caching app shell');
-        return cache.addAll(urlsToCache);
+        return cache.addAll(urlsToCache).catch((error) => {
+          console.error('[Service Worker] Cache addAll error:', error);
+          // Continue even if some resources fail to cache
+          return Promise.resolve();
+        });
       })
       .then(() => self.skipWaiting())
   );
@@ -56,33 +60,38 @@ self.addEventListener('activate', (event) => {
 });
 
 /* ============================
-   Fetch Event - Serve from Cache
+   Fetch Event - Network First, Fall Back to Cache
 ============================ */
 self.addEventListener('fetch', (event) => {
+  // Skip cross-origin requests
+  if (!event.request.url.startsWith(self.location.origin) && 
+      !event.request.url.startsWith('https://fonts.googleapis.com') &&
+      !event.request.url.startsWith('https://www.gstatic.com') &&
+      !event.request.url.startsWith('https://fonts.gstatic.com')) {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request)
+    fetch(event.request)
       .then((response) => {
-        // Cache hit - return response
-        if (response) {
+        // Check if valid response
+        if (!response || response.status !== 200 || response.type === 'error') {
           return response;
         }
 
-        return fetch(event.request).then((response) => {
-          // Check if valid response
-          if (!response || response.status !== 200 || response.type !== 'basic') {
-            return response;
-          }
+        // Clone the response
+        const responseToCache = response.clone();
 
-          // Clone the response
-          const responseToCache = response.clone();
+        caches.open(CACHE_NAME)
+          .then((cache) => {
+            cache.put(event.request, responseToCache);
+          });
 
-          caches.open(CACHE_NAME)
-            .then((cache) => {
-              cache.put(event.request, responseToCache);
-            });
-
-          return response;
-        });
+        return response;
+      })
+      .catch(() => {
+        // Network failed, try cache
+        return caches.match(event.request);
       })
   );
 });
@@ -97,8 +106,8 @@ self.addEventListener('push', (event) => {
   const title = data.title || 'WorkBurst Reminder';
   const options = {
     body: data.body || 'You have a task due soon!',
-    icon: '/icons/icon-192x192.png',
-    badge: '/icons/icon-72x72.png',
+    icon: './icons/icon-192x192.png',
+    badge: './icons/icon-72x72.png',
     vibrate: [200, 100, 200],
     tag: data.tag || 'task-reminder',
     requireInteraction: true,
@@ -106,16 +115,16 @@ self.addEventListener('push', (event) => {
       {
         action: 'view',
         title: 'View Task',
-        icon: '/icons/icon-72x72.png'
+        icon: './icons/icon-72x72.png'
       },
       {
         action: 'close',
         title: 'Dismiss',
-        icon: '/icons/icon-72x72.png'
+        icon: './icons/icon-72x72.png'
       }
     ],
     data: {
-      url: data.url || '/',
+      url: data.url || './',
       taskId: data.taskId
     }
   };
@@ -147,13 +156,13 @@ self.addEventListener('notificationclick', (event) => {
         .then((clientList) => {
           // Check if app is already open
           for (let client of clientList) {
-            if (client.url === '/' && 'focus' in client) {
+            if (client.url.includes(self.location.origin) && 'focus' in client) {
               return client.focus();
             }
           }
           // Open new window if not open
           if (clients.openWindow) {
-            return clients.openWindow('/');
+            return clients.openWindow('./');
           }
         })
     );
@@ -173,9 +182,7 @@ self.addEventListener('sync', (event) => {
 
 async function syncTasks() {
   try {
-    // This would sync offline changes when back online
     console.log('[Service Worker] Syncing tasks...');
-    // Firebase already handles this with offline persistence
     return Promise.resolve();
   } catch (error) {
     console.error('[Service Worker] Sync failed:', error);
@@ -210,13 +217,13 @@ function scheduleNotification(payload) {
     setTimeout(() => {
       self.registration.showNotification(title, {
         body: body,
-        icon: '/icons/icon-192x192.png',
-        badge: '/icons/icon-72x72.png',
+        icon: './icons/icon-192x192.png',
+        badge: './icons/icon-72x72.png',
         vibrate: [200, 100, 200],
         tag: `task-${taskId}`,
         requireInteraction: true,
         data: {
-          url: '/',
+          url: './',
           taskId: taskId
         }
       });

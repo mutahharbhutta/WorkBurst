@@ -32,7 +32,7 @@ const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
 /* ============================
-   PWA Service Worker Registration
+   PWA Service Worker Registration - FIXED
 ============================ */
 let deferredPrompt;
 let swRegistration = null;
@@ -40,7 +40,8 @@ let swRegistration = null;
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      swRegistration = await navigator.serviceWorker.register('/sw.js');
+      // Use relative path for GitHub Pages compatibility
+      swRegistration = await navigator.serviceWorker.register('./sw.js');
       console.log('Service Worker registered:', swRegistration);
       
       swRegistration.addEventListener('updatefound', () => {
