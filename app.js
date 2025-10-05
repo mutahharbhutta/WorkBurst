@@ -32,7 +32,63 @@ const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
 
 /* ============================
-   PWA Service Worker Registration - FIXED
+   Firebase Cloud Messaging Setup
+============================ */
+let messaging = null;
+let fcmToken = null;
+
+async function initializeMessaging() {
+  try {
+    messaging = firebase.messaging();
+    
+    // Request notification permission first
+    const permission = await Notification.requestPermission();
+    if (permission !== 'granted') {
+      console.log('Notification permission denied');
+      return false;
+    }
+    
+    // Get FCM token - REPLACE 'YOUR_VAPID_KEY' with your actual key from Firebase Console
+    fcmToken = await messaging.getToken({
+      vapidKey: 'BNdK4SCRa8WbmM_bqj51En-u3uzYFr4omivYxxyZQ4GA0tImdI5bpf5PQ6J015474caZlT5Q7mEUPv26_uYFiM4'
+    });
+    
+    console.log('FCM Token:', fcmToken);
+    
+    // Store token in Firestore for backend to use
+    if (auth.currentUser) {
+      await db.collection('users').doc(auth.currentUser.uid).set({
+        fcmToken: fcmToken,
+        email: auth.currentUser.email,
+        updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+      }, { merge: true });
+    }
+    
+    // Handle foreground messages
+    messaging.onMessage((payload) => {
+      console.log('Foreground message received:', payload);
+      
+      new Notification(payload.notification.title, {
+        body: payload.notification.body,
+        icon: './icons/icon-192x192.png',
+        badge: './icons/icon-72x72.png',
+        vibrate: [200, 100, 200],
+        requireInteraction: true
+      });
+    });
+    
+    return true;
+  } catch (error) {
+    console.error('FCM initialization error:', error);
+    if (error.code === 'messaging/unsupported-browser') {
+      alert('This browser does not support push notifications. Please use Chrome, Firefox, or Edge.');
+    }
+    return false;
+  }
+}
+
+/* ============================
+   PWA Service Worker Registration
 ============================ */
 let deferredPrompt;
 let swRegistration = null;
@@ -40,7 +96,6 @@ let swRegistration = null;
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', async () => {
     try {
-      // Use relative path for GitHub Pages compatibility
       swRegistration = await navigator.serviceWorker.register('./sw.js');
       console.log('Service Worker registered:', swRegistration);
       
@@ -113,10 +168,6 @@ window.addEventListener('appinstalled', () => {
   const installBanner = $('#installBanner');
   if (installBanner) {
     installBanner.style.display = 'none';
-  }
-  
-  if ('Notification' in window && Notification.permission === 'default') {
-    Notification.requestPermission();
   }
 });
 
@@ -276,8 +327,13 @@ function setAdminUI(isAdmin) {
   document.body.classList.toggle('admin-active', !!isAdmin);
 }
 
-auth.onAuthStateChanged(user => {
+auth.onAuthStateChanged(async (user) => {
   setAdminUI(!!user);
+  
+  // Initialize FCM when user logs in
+  if (user && localStorage.getItem('notificationsEnabled') === 'true') {
+    await initializeMessaging();
+  }
 });
 
 /* ============================
@@ -387,7 +443,7 @@ function openTaskModal(task) {
   taskModalBody.innerHTML = `
     <span class="badge ${badgeClass}">${task.type || '—'}</span>
     <h2>${escapeHtml(task.title || 'Untitled')}</h2>
-    ${task.course ? `<div class="task-modal-course"> ${escapeHtml(task.course)}</div>` : ''}
+    ${task.course ? `<div class="task-modal-course">${escapeHtml(task.course)}</div>` : ''}
     ${task.notes ? `<div class="task-modal-notes">${escapeHtml(task.notes)}</div>` : '<div class="task-modal-notes">No additional notes</div>'}
     
     <div class="task-modal-info">
@@ -690,6 +746,115 @@ deleteBtn?.addEventListener('click', async () => {
 });
 
 /* ============================
+   Schedule Notification with FCM
+============================ */
+async function scheduleNotification(title, dueDate) {
+  const notificationsEnabled = $('#enableNotifications')?.checked;
+  if (!notificationsEnabled || !auth.currentUser) {
+    console.log('Notifications not enabled or user not logged in');
+    return;
+  }
+
+  const notificationTime = new Date(dueDate.getTime() - (12 * 60 * 60 * 1000));
+  const now = new Date();
+
+  if (notificationTime <= now) {
+    console.log('Notification time has already passed');
+    return;
+  }
+
+  try {
+    // Store scheduled notification in Firestore
+    await db.collection('scheduledNotifications').add({
+      userId: auth.currentUser.uid,
+      fcmToken: fcmToken,
+      title: title,
+      dueDate: firebase.firestore.Timestamp.fromDate(dueDate),
+      notificationTime: firebase.firestore.Timestamp.fromDate(notificationTime),
+      sent: false,
+      createdAt: firebase.firestore.FieldValue.serverTimestamp()
+    });
+    
+    console.log(`Notification scheduled in Firestore for: ${title} at ${notificationTime.toLocaleString()}`);
+    updateNotificationStatus();
+  } catch (error) {
+    console.error('Error scheduling notification:', error);
+  }
+}
+
+/* ============================
+   Notification Status Display
+============================ */
+async function updateNotificationStatus() {
+  const statusEl = $('#notificationStatus');
+  if (!statusEl || !auth.currentUser) return;
+  
+  try {
+    const snapshot = await db.collection('scheduledNotifications')
+      .where('userId', '==', auth.currentUser.uid)
+      .where('sent', '==', false)
+      .get();
+    
+    const upcoming = snapshot.docs.filter(doc => {
+      const notifTime = doc.data().notificationTime.toDate();
+      return notifTime > new Date();
+    });
+    
+    if (upcoming.length > 0) {
+      statusEl.innerHTML = `📬 ${upcoming.length} reminder${upcoming.length !== 1 ? 's' : ''} scheduled`;
+      statusEl.style.color = 'var(--success)';
+    } else {
+      statusEl.innerHTML = '📭 No upcoming reminders';
+      statusEl.style.color = 'var(--text-secondary)';
+    }
+  } catch (error) {
+    console.error('Error updating notification status:', error);
+  }
+}
+
+/* ============================
+   Notification Enable/Disable
+============================ */
+$('#enableNotifications')?.addEventListener('change', async (e) => {
+  if (e.target.checked) {
+    if (!auth.currentUser) {
+      alert('Please log in first to enable notifications.');
+      e.target.checked = false;
+      return;
+    }
+    
+    if (!('Notification' in window)) {
+      alert('This browser does not support notifications');
+      e.target.checked = false;
+      return;
+    }
+
+    const success = await initializeMessaging();
+    
+    if (success) {
+      alert('Notifications enabled! You will receive reminders 12 hours before deadlines, even when the app is closed.');
+      localStorage.setItem('notificationsEnabled', 'true');
+      updateNotificationStatus();
+      
+      // Test notification
+      new Notification('WorkBurst Notifications Active', {
+        body: 'You will receive reminders even when the browser is closed',
+        icon: './icons/icon-192x192.png',
+        badge: './icons/icon-72x72.png'
+      });
+    } else {
+      alert('Failed to initialize notifications. Please check browser permissions.');
+      e.target.checked = false;
+    }
+  } else {
+    localStorage.setItem('notificationsEnabled', 'false');
+    updateNotificationStatus();
+  }
+});
+
+
+
+/* ============================
    Form Submit (Create/Update)
 ============================ */
 $('#itemForm').addEventListener('submit', async (e) => {
@@ -752,7 +917,8 @@ $('#itemForm').addEventListener('submit', async (e) => {
       });
     }
     
-    scheduleNotification(payload.title, dueAt);
+    // Schedule notification
+    await scheduleNotification(payload.title, dueAt);
     
     fillForm();
   } catch (err) {
@@ -761,68 +927,29 @@ $('#itemForm').addEventListener('submit', async (e) => {
 });
 
 /* ============================
-   Notification System
+   Initialize on Page Load
 ============================ */
-async function scheduleNotification(title, dueDate) {
-  const notificationsEnabled = $('#enableNotifications')?.checked;
-  if (!notificationsEnabled) return;
-
-  const notificationTime = new Date(dueDate.getTime() - (12 * 60 * 60 * 1000));
-  const now = new Date();
-
-  if (notificationTime > now) {
-    if ('Notification' in window) {
-      let permission = Notification.permission;
-      
-      if (permission === 'default') {
-        permission = await Notification.requestPermission();
-      }
-      
-      if (permission === 'granted') {
-        if (swRegistration && swRegistration.active) {
-          swRegistration.active.postMessage({
-            type: 'SCHEDULE_NOTIFICATION',
-            payload: {
-              title: 'WorkBurst Reminder',
-              body: `Task "${title}" is due in 12 hours!`,
-              notificationTime: notificationTime.getTime(),
-              taskId: Date.now()
-            }
-          });
-          
-          console.log('Notification scheduled via service worker');
-        } else {
-          const timeUntilNotification = notificationTime.getTime() - now.getTime();
-          
-          setTimeout(() => {
-            new Notification('WorkBurst Reminder', {
-              body: `Task "${title}" is due in 12 hours!`,
-              icon: '/icons/icon-192x192.png',
-              badge: '/icons/icon-72x72.png',
-              vibrate: [200, 100, 200],
-              tag: 'task-reminder',
-              requireInteraction: true
-            });
-          }, timeUntilNotification);
-          
-          console.log('Notification scheduled via setTimeout');
-        }
-      }
-    }
-  }
-}
-
-$('#enableNotifications')?.addEventListener('change', async (e) => {
-  if (e.target.checked && 'Notification' in window) {
-    const permission = await Notification.requestPermission();
-    if (permission === 'granted') {
-      alert('Notifications enabled! You will receive reminders 12 hours before task deadlines.');
-    } else {
-      alert('Please enable notifications in your browser settings to receive reminders.');
-      e.target.checked = false;
+document.addEventListener('DOMContentLoaded', async () => {
+  // Restore notification preference
+  const enabled = localStorage.getItem('notificationsEnabled') === 'true';
+  if ($('#enableNotifications')) {
+    $('#enableNotifications').checked = enabled;
+    
+    if (enabled && auth.currentUser) {
+      await initializeMessaging();
+      updateNotificationStatus();
     }
   }
 });
+
+/* ============================
+   Update notification status periodically
+============================ */
+setInterval(() => {
+  if (auth.currentUser && localStorage.getItem('notificationsEnabled') === 'true') {
+    updateNotificationStatus();
+  }
+}, 60000); // Every minute
 
 /* ============================
    Fallback: Hide Preloader

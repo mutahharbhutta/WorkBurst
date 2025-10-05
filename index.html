@@ -19,6 +19,12 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+
+<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-compat.js"></script>
+
 </head>
 <body>
   <!-- Preloader -->
@@ -54,7 +60,7 @@
       </div>
       
       <button class="icon-btn" id="loginBtn" title="Admin Login">
-        <span>🔒</span>
+        <span>🔐</span>
       </button>
       
       <button class="icon-btn danger admin-only" id="logoutBtn" title="Logout">
@@ -124,11 +130,14 @@
       
       <!-- Notification Settings -->
       <div class="notification-settings">
-        <h3>Notifications</h3>
+        <h3>Push Notifications</h3>
         <label class="checkbox-label">
           <input type="checkbox" id="enableNotifications" />
-          <span>Enable notifications (12 hours before deadline)</span>
+          <span>Enable push notifications (12 hours before deadline)</span>
         </label>
+        <div id="notificationStatus" style="margin-top: 10px; font-size: 13px; color: var(--text-secondary);">
+          Login and enable notifications to see status
+        </div>
       </div>
 
       <form id="itemForm" autocomplete="off">
@@ -230,6 +239,7 @@
   <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-compat.js"></script>
 
   <script src="app.js"></script>
 </body>
