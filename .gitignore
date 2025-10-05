@@ -1,0 +1,37 @@
+# Environment Variables
+.env
+.env.local
+.env.production
+.env.development
+
+# IDE and Editor Files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Node modules (if using npm)
+node_modules/
+package-lock.json
+yarn.lock
+
+# Build and Cache
+dist/
+build/
+.cache/
+*.log
+
+# Firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+
+# Sensitive Files
+config.js
+secrets.js
+
+# Temporary Files
+*.tmp
+*.temp
