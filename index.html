@@ -30,28 +30,39 @@
     </div>
   </div>
 
-  <!-- Navigation -->
-  <nav class="navbar">
-    <div class="nav-container">
-      <a href="index.html" class="nav-brand">WorkBurst</a>
+<!-- Navigation with Compact Buttons -->
+<nav class="navbar">
+  <div class="nav-container">
+    <a href="index.html" class="nav-brand">WorkBurst</a>
+    
+    <div class="nav-actions">
+      <button class="icon-btn success" id="timetableBtn" title="Timetable">
+        <span>📅</span>
+      </button>
       
-      <div class="nav-menu">
-        <button id="timetableBtn" class="nav-btn secondary">Timetable</button>
-        <div class="theme-selector">
-          <button id="themeBtn" class="theme-toggle" aria-label="Change theme">🎨</button>
-          <div class="theme-dropdown" id="themeDropdown">
-            <button data-theme="darkest">Darkest Black</button>
-            <button data-theme="classic">Classic</button>
-            <button data-theme="modern">Modern</button>
-            <button data-theme="chalkboard">Chalkboard</button>
-            <button data-theme="notebook">Notebook</button>
-          </div>
+      <div class="theme-selector">
+        <button class="icon-btn" id="themeBtn" title="Change Theme">
+          <span>🎨</span>
+        </button>
+        <div class="theme-dropdown" id="themeDropdown">
+          <button data-theme="darkest">Darkest Black</button>
+          <button data-theme="classic">Classic</button>
+          <button data-theme="modern">Modern</button>
+          <button data-theme="chalkboard">Chalkboard</button>
+          <button data-theme="notebook">Notebook</button>
         </div>
-        <button id="loginBtn" class="nav-btn primary">Admin</button>
-        <button id="logoutBtn" class="nav-btn danger admin-only">Logout</button>
       </div>
+      
+      <button class="icon-btn" id="loginBtn" title="Admin Login">
+        <span>🔒</span>
+      </button>
+      
+      <button class="icon-btn danger admin-only" id="logoutBtn" title="Logout">
+        <span>🚪</span>
+      </button>
     </div>
-  </nav>
+  </div>
+</nav>
 
   <!-- Main Container -->
   <div class="container">
