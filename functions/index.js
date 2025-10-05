@@ -1,6 +1,5 @@
 /**
  * Firebase Cloud Functions for WorkBurst Push Notifications
- * Handles scheduled notifications and automatic task reminders
  */
 
 const functions = require('firebase-functions');
@@ -10,7 +9,6 @@ admin.initializeApp();
 
 /**
  * Scheduled Function - Runs Every Hour
- * Checks for notifications that need to be sent
  */
 exports.sendScheduledNotifications = functions.pubsub
     .schedule('every 1 hours')
@@ -75,7 +73,7 @@ exports.sendScheduledNotifications = functions.pubsub
                     data: payload.data,
                     webpush: payload.webpush,
                   }).catch((error) => {
-                    console.error(`Failed to send: ${error.message}`);
+                    console.error(`Failed: ${error.message}`);
                     return null;
                   })
               );
@@ -101,7 +99,6 @@ exports.sendScheduledNotifications = functions.pubsub
 
 /**
  * Trigger on New Task Creation
- * Automatically schedules notification 12 hours before due date
  */
 exports.onTaskCreated = functions.firestore
     .document('items/{itemId}')
@@ -118,7 +115,7 @@ exports.onTaskCreated = functions.firestore
         const now = Date.now();
 
         if (notificationTime <= now) {
-          console.log('Task due date too soon, skipping notification');
+          console.log('Task due date too soon');
           return null;
         }
 
@@ -131,7 +128,6 @@ exports.onTaskCreated = functions.firestore
 
         usersSnapshot.forEach((userDoc) => {
           const userData = userDoc.data();
-
           const notificationRef = admin.firestore()
               .collection('scheduledNotifications')
               .doc();
@@ -152,17 +148,16 @@ exports.onTaskCreated = functions.firestore
         });
 
         await batch.commit();
-        console.log(`Scheduled notifications for: ${data.title}`);
+        console.log(`Scheduled: ${data.title}`);
         return null;
       } catch (error) {
-        console.error('Error scheduling notification:', error);
+        console.error('Error scheduling:', error);
         return null;
       }
     });
 
 /**
  * Cleanup Old Notifications
- * Runs daily to delete sent notifications older than 7 days
  */
 exports.cleanupOldNotifications = functions.pubsub
     .schedule('every 24 hours')
@@ -179,7 +174,7 @@ exports.cleanupOldNotifications = functions.pubsub
             .get();
 
         if (snapshot.empty) {
-          console.log('No old notifications to clean up');
+          console.log('No old notifications');
           return null;
         }
 
@@ -192,7 +187,7 @@ exports.cleanupOldNotifications = functions.pubsub
         console.log(`Deleted ${snapshot.size} old notifications`);
         return null;
       } catch (error) {
-        console.error('Error cleaning up notifications:', error);
+        console.error('Cleanup error:', error);
         return null;
       }
     });
