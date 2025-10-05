@@ -748,40 +748,321 @@ deleteBtn?.addEventListener('click', async () => {
 /* ============================
    Schedule Notification with FCM
 ============================ */
-async function scheduleNotification(title, dueDate) {
-  const notificationsEnabled = $('#enableNotifications')?.checked;
-  if (!notificationsEnabled || !auth.currentUser) {
-    console.log('Notifications not enabled or user not logged in');
+/* ============================
+   100% FREE Notification System (No Cloud Functions)
+   Add this to app.js after line 500
+   
+   LIMITATIONS:
+   - Works when browser is open (even minimized)
+   - Won't work if browser completely closed
+   - Perfect for PWA installed on mobile
+============================ */
+
+/* ============================
+   Periodic Notification Checker
+============================ */
+let notificationCheckInterval = null;
+
+function startNotificationChecker() {
+  // Clear any existing interval
+  if (notificationCheckInterval) {
+    clearInterval(notificationCheckInterval);
+  }
+
+  // Check every 5 minutes when online
+  notificationCheckInterval = setInterval(checkAndSendNotifications, 5 * 60 * 1000);
+  
+  // Also check immediately
+  checkAndSendNotifications();
+  
+  console.log('Notification checker started');
+}
+
+function stopNotificationChecker() {
+  if (notificationCheckInterval) {
+    clearInterval(notificationCheckInterval);
+    notificationCheckInterval = null;
+  }
+  console.log('Notification checker stopped');
+}
+
+/* ============================
+   Check Tasks and Send Notifications
+============================ */
+async function checkAndSendNotifications() {
+  if (!auth.currentUser || !localStorage.getItem('notificationsEnabled')) {
     return;
   }
 
-  const notificationTime = new Date(dueDate.getTime() - (12 * 60 * 60 * 1000));
-  const now = new Date();
-
-  if (notificationTime <= now) {
-    console.log('Notification time has already passed');
-    return;
-  }
-
-  try {
-    // Store scheduled notification in Firestore
-    await db.collection('scheduledNotifications').add({
-      userId: auth.currentUser.uid,
-      fcmToken: fcmToken,
-      title: title,
-      dueDate: firebase.firestore.Timestamp.fromDate(dueDate),
-      notificationTime: firebase.firestore.Timestamp.fromDate(notificationTime),
-      sent: false,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+  const now = Date.now();
+  const twelveHoursFromNow = now + (12 * 60 * 60 * 1000);
+  
+  // Get all pending tasks
+  const allTasks = window.__ALL_ITEMS__ || [];
+  
+  for (const task of allTasks) {
+    if (task.status !== 'pending') continue;
     
-    console.log(`Notification scheduled in Firestore for: ${title} at ${notificationTime.toLocaleString()}`);
-    updateNotificationStatus();
-  } catch (error) {
-    console.error('Error scheduling notification:', error);
+    const dueTime = task.dueAt?.toDate ? task.dueAt.toDate().getTime() : new Date(task.dueAt).getTime();
+    const notificationTime = dueTime - (12 * 60 * 60 * 1000);
+    
+    // Check if we should notify (within 12-hour window but not yet notified)
+    if (notificationTime <= now && now < dueTime) {
+      const notificationId = `notif-${task.id}-${Math.floor(notificationTime / 60000)}`;
+      
+      // Check if already notified (using IndexedDB)
+      const alreadyNotified = await isNotificationSent(notificationId);
+      
+      if (!alreadyNotified) {
+        await sendTaskNotification(task);
+        await markNotificationSent(notificationId);
+      }
+    }
   }
 }
 
+/* ============================
+   Send Task Notification
+============================ */
+async function sendTaskNotification(task) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    return;
+  }
+
+  const title = '🔔 Task Reminder - WorkBurst';
+  const dueDate = task.dueAt?.toDate ? task.dueAt.toDate() : new Date(task.dueAt);
+  const timeUntilDue = countdown(dueDate);
+  
+  const options = {
+    body: `${task.title}\nDue in: ${timeUntilDue}\nCourse: ${task.course || 'N/A'}`,
+    icon: './icons/icon-192x192.png',
+    badge: './icons/icon-72x72.png',
+    vibrate: [200, 100, 200, 100, 200],
+    tag: `task-${task.id}`,
+    requireInteraction: true,
+    data: {
+      taskId: task.id,
+      url: '/'
+    },
+    actions: [
+      { action: 'view', title: '📋 View Task' },
+      { action: 'dismiss', title: '✕ Dismiss' }
+    ]
+  };
+
+  try {
+    const notification = new Notification(title, options);
+    
+    notification.onclick = function() {
+      window.focus();
+      notification.close();
+      
+      // Open task modal if possible
+      const taskElement = document.querySelector(`[data-task-id="${task.id}"]`);
+      if (taskElement) {
+        taskElement.click();
+      }
+    };
+
+    console.log(`Notification sent for: ${task.title}`);
+    
+    // Also send via service worker for better reliability
+    if ('serviceWorker' in navigator && swRegistration) {
+      swRegistration.showNotification(title, options);
+    }
+  } catch (error) {
+    console.error('Error sending notification:', error);
+  }
+}
+
+/* ============================
+   IndexedDB for Notification Tracking
+============================ */
+let notificationDB = null;
+
+function initNotificationDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('WorkBurstNotifications', 1);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      notificationDB = request.result;
+      resolve(notificationDB);
+    };
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('sentNotifications')) {
+        db.createObjectStore('sentNotifications', { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+async function markNotificationSent(notificationId) {
+  if (!notificationDB) await initNotificationDB();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = notificationDB.transaction(['sentNotifications'], 'readwrite');
+    const store = transaction.objectStore('sentNotifications');
+    
+    const request = store.put({
+      id: notificationId,
+      sentAt: Date.now()
+    });
+    
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function isNotificationSent(notificationId) {
+  if (!notificationDB) await initNotificationDB();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = notificationDB.transaction(['sentNotifications'], 'readonly');
+    const store = transaction.objectStore('sentNotifications');
+    const request = store.get(notificationId);
+    
+    request.onsuccess = () => resolve(!!request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/* ============================
+   Cleanup Old Notification Records (weekly)
+============================ */
+async function cleanupOldNotifications() {
+  if (!notificationDB) await initNotificationDB();
+  
+  const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  
+  return new Promise((resolve, reject) => {
+    const transaction = notificationDB.transaction(['sentNotifications'], 'readwrite');
+    const store = transaction.objectStore('sentNotifications');
+    const request = store.openCursor();
+    
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        if (cursor.value.sentAt < oneWeekAgo) {
+          cursor.delete();
+        }
+        cursor.continue();
+      } else {
+        resolve();
+      }
+    };
+    
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/* ============================
+   Online/Offline Detection
+============================ */
+window.addEventListener('online', () => {
+  console.log('Device online - checking for notifications');
+  checkAndSendNotifications();
+});
+
+window.addEventListener('offline', () => {
+  console.log('Device offline');
+});
+
+/* ============================
+   Visibility Change - Check when tab becomes visible
+============================ */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    console.log('Tab visible - checking for notifications');
+    checkAndSendNotifications();
+  }
+});
+
+/* ============================
+   Update Notification Enable/Disable Handler
+   Replace the existing handler around line 600
+============================ */
+$('#enableNotifications')?.addEventListener('change', async (e) => {
+  if (e.target.checked) {
+    if (!auth.currentUser) {
+      alert('Please log in first to enable notifications.');
+      e.target.checked = false;
+      return;
+    }
+    
+    if (!('Notification' in window)) {
+      alert('This browser does not support notifications');
+      e.target.checked = false;
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    
+    if (permission === 'granted') {
+      localStorage.setItem('notificationsEnabled', 'true');
+      await initNotificationDB();
+      startNotificationChecker();
+      
+      // Test notification
+      new Notification('WorkBurst Notifications Active', {
+        body: 'You will receive reminders 12 hours before deadlines',
+        icon: './icons/icon-192x192.png',
+        badge: './icons/icon-72x72.png'
+      });
+      
+      alert('Notifications enabled! Keep browser open for reminders.');
+    } else {
+      alert('Notification permission denied. Please enable in browser settings.');
+      e.target.checked = false;
+    }
+  } else {
+    localStorage.setItem('notificationsEnabled', 'false');
+    stopNotificationChecker();
+  }
+});
+
+/* ============================
+   Auto-start notification checker on page load
+============================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize IndexedDB
+  await initNotificationDB();
+  
+  // Restore notification preference
+  const enabled = localStorage.getItem('notificationsEnabled') === 'true';
+  if ($('#enableNotifications')) {
+    $('#enableNotifications').checked = enabled;
+    
+    if (enabled && auth.currentUser) {
+      startNotificationChecker();
+      console.log('Auto-started notification checker');
+    }
+  }
+  
+  // Cleanup old records weekly
+  const lastCleanup = localStorage.getItem('lastNotificationCleanup');
+  const oneWeek = 7 * 24 * 60 * 60 * 1000;
+  
+  if (!lastCleanup || Date.now() - parseInt(lastCleanup) > oneWeek) {
+    await cleanupOldNotifications();
+    localStorage.setItem('lastNotificationCleanup', Date.now().toString());
+  }
+});
+
+/* ============================
+   Auth State Change - Start/Stop checker
+============================ */
+auth.onAuthStateChanged((user) => {
+  setAdminUI(!!user);
+  
+  if (user && localStorage.getItem('notificationsEnabled') === 'true') {
+    startNotificationChecker();
+  } else {
+    stopNotificationChecker();
+  }
+});
 /* ============================
    Notification Status Display
 ============================ */
