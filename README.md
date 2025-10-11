@@ -14,7 +14,7 @@ A comprehensive task management system designed for students to track assignment
 * **📆 Day of Week Display** – Shows the day of the week for each task's due date
 * **🎨 Multiple Themes** – 7 beautiful themes: Dark, Light, Aesthetic, Cat, Space, Forest, Ocean
 * **📋 Timetable Feature** – View and download your class schedule as PDF or Excel
-* ** Last Updated Tracker** – Displays when tasks were last modified
+* **✔️Last Updated Tracker** – Displays when tasks were last modified
 * **📝 Multi-line Notes** – Notes field now supports multi-line text input
 * **🔔 Notification System** – Browser notifications 12 hours before task deadlines
 * **💡 Loading Tips** – Rotating productivity tips during app loading
