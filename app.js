@@ -24,176 +24,12 @@ firebase.firestore().enablePersistence({ synchronizeTabs: true }).catch(err => {
 
 const auth = firebase.auth();
 const db = firebase.firestore();
-const storage = firebase.storage();
 
 /* ============================
    Helper Functions
 ============================ */
 const $ = s => document.querySelector(s);
 const $$ = s => Array.from(document.querySelectorAll(s));
-
-/* ============================
-   Live User Tracking & Visit Counter
-============================ */
-let currentUserPresenceRef = null;
-let onlineUsersListener = null;
-
-async function initializeAnalytics() {
-  try {
-    // Initialize visit counter
-    const visitsRef = db.collection('analytics').doc('siteStats');
-    await db.runTransaction(async (transaction) => {
-      const doc = await transaction.get(visitsRef);
-      if (!doc.exists) {
-        transaction.set(visitsRef, { totalVisits: 1, lastUpdated: firebase.firestore.FieldValue.serverTimestamp() });
-      } else {
-        transaction.update(visitsRef, {
-          totalVisits: firebase.firestore.FieldValue.increment(1),
-          lastUpdated: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-    });
-
-    // Listen to total visits
-    visitsRef.onSnapshot(doc => {
-      if (doc.exists) {
-        $('#totalVisits').textContent = doc.data().totalVisits || 0;
-      }
-    });
-
-    // Set up presence system
-    const uid = 'user_' + Math.random().toString(36).substr(2, 9);
-    currentUserPresenceRef = db.collection('presence').doc(uid);
-    
-    // Mark user as online
-    await currentUserPresenceRef.set({
-      online: true,
-      lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-    });
-
-    // Update presence every 30 seconds
-    setInterval(async () => {
-      if (currentUserPresenceRef) {
-        await currentUserPresenceRef.update({
-          lastSeen: firebase.firestore.FieldValue.serverTimestamp()
-        });
-      }
-    }, 30000);
-
-    // Listen to online users count
-    onlineUsersListener = db.collection('presence')
-      .where('online', '==', true)
-      .onSnapshot(snapshot => {
-        const now = Date.now();
-        const activeUsers = snapshot.docs.filter(doc => {
-          const lastSeen = doc.data().lastSeen?.toDate();
-          return lastSeen && (now - lastSeen.getTime()) < 60000; // Active in last 60 seconds
-        });
-        $('#onlineUsers').textContent = activeUsers.length;
-      });
-
-    // Mark user as offline when leaving
-    window.addEventListener('beforeunload', () => {
-      if (currentUserPresenceRef) {
-        currentUserPresenceRef.update({ online: false });
-      }
-    });
-  } catch (error) {
-    console.error('Analytics initialization error:', error);
-  }
-}
-
-// Cleanup old presence records daily
-setInterval(async () => {
-  try {
-    const cutoff = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
-    const snapshot = await db.collection('presence')
-      .where('lastSeen', '<', firebase.firestore.Timestamp.fromDate(cutoff))
-      .limit(50)
-      .get();
-    
-    const batch = db.batch();
-    snapshot.docs.forEach(doc => batch.delete(doc.ref));
-    if (!snapshot.empty) await batch.commit();
-  } catch (error) {
-    console.error('Presence cleanup error:', error);
-  }
-}, 60000); // Run every minute
-
-/* ============================
-   Image Upload Functionality
-============================ */
-let selectedImages = [];
-
-$('#imageUpload').addEventListener('change', (e) => {
-  const files = Array.from(e.target.files);
-  files.forEach(file => {
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        selectedImages.push({
-          file: file,
-          dataUrl: e.target.result,
-          id: Date.now() + Math.random()
-        });
-        renderImagePreviews();
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-  e.target.value = '';
-});
-
-function renderImagePreviews() {
-  const previewContainer = $('#imagePreview');
-  previewContainer.innerHTML = selectedImages.map((img, idx) => `
-    <div class="image-preview-item">
-      <img src="${img.dataUrl}" alt="Preview ${idx + 1}" />
-      <button type="button" class="remove-image" data-idx="${idx}">×</button>
-    </div>
-  `).join('');
-
-  $$('.remove-image').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const idx = parseInt(e.target.dataset.idx);
-      selectedImages.splice(idx, 1);
-      renderImagePreviews();
-    });
-  });
-}
-
-async function uploadImages(taskId) {
-  const uploadPromises = selectedImages.map(async (img) => {
-    const filename = `tasks/${taskId}/${Date.now()}_${img.file.name}`;
-    const storageRef = storage.ref(filename);
-    await storageRef.put(img.file);
-    return await storageRef.getDownloadURL();
-  });
-  return await Promise.all(uploadPromises);
-}
-
-/* ============================
-   Image Viewer Modal
-============================ */
-const imageViewerModal = $('#imageViewerModal');
-const viewerImage = $('#viewerImage');
-const closeImageViewer = $('#closeImageViewer');
-
-function openImageViewer(imageUrl) {
-  viewerImage.src = imageUrl;
-  imageViewerModal.classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeImageViewerModal() {
-  imageViewerModal.classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-closeImageViewer.addEventListener('click', closeImageViewerModal);
-imageViewerModal.addEventListener('click', (e) => {
-  if (e.target === imageViewerModal) closeImageViewerModal();
-});
 
 /* ============================
    Firebase Cloud Messaging Setup
@@ -204,18 +40,22 @@ let fcmToken = null;
 async function initializeMessaging() {
   try {
     messaging = firebase.messaging();
+    
+    // Request notification permission first
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       console.log('Notification permission denied');
       return false;
     }
     
+    // Get FCM token - REPLACE 'YOUR_VAPID_KEY' with your actual key from Firebase Console
     fcmToken = await messaging.getToken({
       vapidKey: 'BNdK4SCRa8WbmM_bqj51En-u3uzYFr4omivYxxyZQ4GA0tImdI5bpf5PQ6J015474caZlT5Q7mEUPv26_uYFiM4'
     });
     
     console.log('FCM Token:', fcmToken);
     
+    // Store token in Firestore for backend to use
     if (auth.currentUser) {
       await db.collection('users').doc(auth.currentUser.uid).set({
         fcmToken: fcmToken,
@@ -224,8 +64,10 @@ async function initializeMessaging() {
       }, { merge: true });
     }
     
+    // Handle foreground messages
     messaging.onMessage((payload) => {
       console.log('Foreground message received:', payload);
+      
       new Notification(payload.notification.title, {
         body: payload.notification.body,
         icon: './icons/icon-192x192.png',
@@ -238,6 +80,9 @@ async function initializeMessaging() {
     return true;
   } catch (error) {
     console.error('FCM initialization error:', error);
+    if (error.code === 'messaging/unsupported-browser') {
+      alert('This browser does not support push notifications. Please use Chrome, Firefox, or Edge.');
+    }
     return false;
   }
 }
@@ -281,8 +126,11 @@ if ('serviceWorker' in navigator) {
 window.addEventListener('beforeinstallprompt', (e) => {
   e.preventDefault();
   deferredPrompt = e;
+  
   const installBanner = $('#installBanner');
-  if (installBanner) installBanner.style.display = 'flex';
+  if (installBanner) {
+    installBanner.style.display = 'flex';
+  }
 });
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -293,28 +141,34 @@ document.addEventListener('DOMContentLoaded', () => {
   if (installBtn) {
     installBtn.addEventListener('click', async () => {
       if (!deferredPrompt) return;
+      
       deferredPrompt.prompt();
       const { outcome } = await deferredPrompt.userChoice;
+      
       console.log(`User response to install prompt: ${outcome}`);
+      
       deferredPrompt = null;
-      if (installBanner) installBanner.style.display = 'none';
+      if (installBanner) {
+        installBanner.style.display = 'none';
+      }
     });
   }
   
   if (dismissBtn) {
     dismissBtn.addEventListener('click', () => {
-      if (installBanner) installBanner.style.display = 'none';
+      if (installBanner) {
+        installBanner.style.display = 'none';
+      }
     });
   }
-
-  // Initialize analytics
-  initializeAnalytics();
 });
 
 window.addEventListener('appinstalled', () => {
   console.log('PWA was installed');
   const installBanner = $('#installBanner');
-  if (installBanner) installBanner.style.display = 'none';
+  if (installBanner) {
+    installBanner.style.display = 'none';
+  }
 });
 
 /* ============================
@@ -416,14 +270,13 @@ $$('#themeDropdown button').forEach(btn => {
    Preloader Tips
 ============================ */
 const tips = [
-  '📝 Break large tasks into smaller chunks',
-  '📖 Review notes before starting assignments',
-  '⏰ Set reminders 24 hours before deadlines',
-  '🎯 Prioritize tasks by due date',
-  '☕ Take regular breaks to stay focused',
-  '🔔 Enable notifications to never miss a deadline',
-  '💡 Keep your task notes detailed with images',
-  '📸 Add screenshots to remember important details'
+  'Break large tasks into smaller chunks',
+  'Review notes before starting assignments',
+  'Set reminders 24 hours before deadlines',
+  'Prioritize tasks by due date',
+  'Take regular breaks to stay focused',
+  'Enable notifications to never miss a deadline',
+  'Keep your task notes detailed and clear'
 ];
 
 function rotateTips() {
@@ -476,6 +329,8 @@ function setAdminUI(isAdmin) {
 
 auth.onAuthStateChanged(async (user) => {
   setAdminUI(!!user);
+  
+  // Initialize FCM when user logs in
   if (user && localStorage.getItem('notificationsEnabled') === 'true') {
     await initializeMessaging();
   }
@@ -585,27 +440,11 @@ function openTaskModal(task) {
   const countdownClass = overdue ? 'overdue' : (soon ? 'soon' : 'safe');
   const dayOfWeek = getDayOfWeek(due);
 
-  let imagesHtml = '';
-  if (task.images && task.images.length > 0) {
-    imagesHtml = `
-      <div class="task-modal-images">
-        <h4>📷 Attached Images</h4>
-        <div class="image-gallery">
-          ${task.images.map(url => `
-            <img src="${escapeAttr(url)}" alt="Task image" class="gallery-image" data-url="${escapeAttr(url)}" />
-          `).join('')}
-        </div>
-      </div>
-    `;
-  }
-
   taskModalBody.innerHTML = `
     <span class="badge ${badgeClass}">${task.type || '—'}</span>
     <h2>${escapeHtml(task.title || 'Untitled')}</h2>
     ${task.course ? `<div class="task-modal-course">${escapeHtml(task.course)}</div>` : ''}
     ${task.notes ? `<div class="task-modal-notes">${escapeHtml(task.notes)}</div>` : '<div class="task-modal-notes">No additional notes</div>'}
-    
-    ${imagesHtml}
     
     <div class="task-modal-info">
       <div class="task-modal-info-item">
@@ -629,13 +468,6 @@ function openTaskModal(task) {
     ${task.link ? `<a class="task-modal-link" href="${escapeAttr(task.link)}" target="_blank" rel="noopener">🔗 Open Link</a>` : ''}
   `;
 
-  // Add click listeners to gallery images
-  $$('.gallery-image').forEach(img => {
-    img.addEventListener('click', () => {
-      openImageViewer(img.dataset.url);
-    });
-  });
-
   taskModal.classList.add('active');
   document.body.style.overflow = 'hidden';
 }
@@ -654,13 +486,8 @@ taskModal.addEventListener('click', (e) => {
 });
 
 document.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') {
-    if (taskModal.classList.contains('active')) {
-      closeTaskModal();
-    }
-    if (imageViewerModal.classList.contains('active')) {
-      closeImageViewerModal();
-    }
+  if (e.key === 'Escape' && taskModal.classList.contains('active')) {
+    closeTaskModal();
   }
 });
 
@@ -714,9 +541,6 @@ function renderWeeklyTasks() {
         const countdownClass = overdue ? 'overdue' : (soon ? 'soon' : 'safe');
         const dayOfWeek = getDayOfWeek(due);
 
-        const hasImages = it.images && it.images.length > 0;
-        const imageIndicator = hasImages ? `<span class="image-indicator">📷 ${it.images.length}</span>` : '';
-
         const el = document.createElement('article');
         el.className = 'card';
         el.dataset.taskId = it.id;
@@ -724,7 +548,6 @@ function renderWeeklyTasks() {
           <div class="card-header">
             <span class="badge ${badgeClass}">${it.type || '—'}</span>
             <div class="card-actions">
-              ${imageIndicator}
               ${auth.currentUser ? `<button class="icon-btn" data-del-card="${it.id}" title="Delete">×</button>` : ''}
             </div>
           </div>
@@ -733,7 +556,7 @@ function renderWeeklyTasks() {
           
           ${it.course ? `<div class="card-course">${escapeHtml(it.course)}</div>` : ''}
           
-          ${it.notes ? `<div class="card-notes">${escapeHtml(it.notes.substring(0, 100))}${it.notes.length > 100 ? '...' : ''}</div>` : ''}
+          ${it.notes ? `<div class="card-notes">${escapeHtml(it.notes)}</div>` : ''}
           
           <div class="card-footer">
             <div class="due-info">
@@ -816,10 +639,6 @@ adminTbody.addEventListener('click', async (e) => {
       renderWeeklyTasks();
       renderAdminTable();
 
-      // Update last modified time
-      lastUpdateTime = new Date();
-      updateLastUpdatedMessage();
-
       try {
         await db.collection('items').doc(idDel).delete();
       } catch (err) {
@@ -847,10 +666,6 @@ weeklyTasksContainer.addEventListener('click', async (e) => {
   renderWeeklyTasks();
   renderAdminTable();
 
-  // Update last modified time
-  lastUpdateTime = new Date();
-  updateLastUpdatedMessage();
-
   try {
     await db.collection('items').doc(idDel).delete();
   } catch (err) {
@@ -877,21 +692,6 @@ function loadIntoForm(id) {
   $('#dueTime').value = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   $('#link').value = it.link || '';
   $('#notes').value = it.notes || '';
-  
-  // Load existing images
-  selectedImages = [];
-  if (it.images && it.images.length > 0) {
-    it.images.forEach((url, idx) => {
-      selectedImages.push({
-        dataUrl: url,
-        id: Date.now() + idx,
-        existing: true,
-        url: url
-      });
-    });
-    renderImagePreviews();
-  }
-  
   $('#title').focus();
 
   if (deleteBtn) {
@@ -911,8 +711,6 @@ function fillForm() {
   $('#dueTime').value = '';
   $('#link').value = '';
   $('#notes').value = '';
-  selectedImages = [];
-  renderImagePreviews();
 
   if (deleteBtn) {
     deleteBtn.style.display = 'none';
@@ -939,10 +737,6 @@ deleteBtn?.addEventListener('click', async () => {
   renderWeeklyTasks();
   renderAdminTable();
 
-  // Update last modified time
-  lastUpdateTime = new Date();
-  updateLastUpdatedMessage();
-
   try {
     await db.collection('items').doc(id).delete();
     fillForm();
@@ -954,39 +748,321 @@ deleteBtn?.addEventListener('click', async () => {
 /* ============================
    Schedule Notification with FCM
 ============================ */
-async function scheduleNotification(title, dueDate) {
-  const notificationsEnabled = $('#enableNotifications')?.checked;
-  if (!notificationsEnabled || !auth.currentUser) {
-    console.log('Notifications not enabled or user not logged in');
+/* ============================
+   100% FREE Notification System (No Cloud Functions)
+   Add this to app.js after line 500
+   
+   LIMITATIONS:
+   - Works when browser is open (even minimized)
+   - Won't work if browser completely closed
+   - Perfect for PWA installed on mobile
+============================ */
+
+/* ============================
+   Periodic Notification Checker
+============================ */
+let notificationCheckInterval = null;
+
+function startNotificationChecker() {
+  // Clear any existing interval
+  if (notificationCheckInterval) {
+    clearInterval(notificationCheckInterval);
+  }
+
+  // Check every 5 minutes when online
+  notificationCheckInterval = setInterval(checkAndSendNotifications, 5 * 60 * 1000);
+  
+  // Also check immediately
+  checkAndSendNotifications();
+  
+  console.log('Notification checker started');
+}
+
+function stopNotificationChecker() {
+  if (notificationCheckInterval) {
+    clearInterval(notificationCheckInterval);
+    notificationCheckInterval = null;
+  }
+  console.log('Notification checker stopped');
+}
+
+/* ============================
+   Check Tasks and Send Notifications
+============================ */
+async function checkAndSendNotifications() {
+  if (!auth.currentUser || !localStorage.getItem('notificationsEnabled')) {
     return;
   }
 
-  const notificationTime = new Date(dueDate.getTime() - (12 * 60 * 60 * 1000));
-  const now = new Date();
-
-  if (notificationTime <= now) {
-    console.log('Notification time has already passed');
-    return;
-  }
-
-  try {
-    await db.collection('scheduledNotifications').add({
-      userId: auth.currentUser.uid,
-      fcmToken: fcmToken,
-      title: title,
-      dueDate: firebase.firestore.Timestamp.fromDate(dueDate),
-      notificationTime: firebase.firestore.Timestamp.fromDate(notificationTime),
-      sent: false,
-      createdAt: firebase.firestore.FieldValue.serverTimestamp()
-    });
+  const now = Date.now();
+  const twelveHoursFromNow = now + (12 * 60 * 60 * 1000);
+  
+  // Get all pending tasks
+  const allTasks = window.__ALL_ITEMS__ || [];
+  
+  for (const task of allTasks) {
+    if (task.status !== 'pending') continue;
     
-    console.log(`Notification scheduled in Firestore for: ${title} at ${notificationTime.toLocaleString()}`);
-    updateNotificationStatus();
-  } catch (error) {
-    console.error('Error scheduling notification:', error);
+    const dueTime = task.dueAt?.toDate ? task.dueAt.toDate().getTime() : new Date(task.dueAt).getTime();
+    const notificationTime = dueTime - (12 * 60 * 60 * 1000);
+    
+    // Check if we should notify (within 12-hour window but not yet notified)
+    if (notificationTime <= now && now < dueTime) {
+      const notificationId = `notif-${task.id}-${Math.floor(notificationTime / 60000)}`;
+      
+      // Check if already notified (using IndexedDB)
+      const alreadyNotified = await isNotificationSent(notificationId);
+      
+      if (!alreadyNotified) {
+        await sendTaskNotification(task);
+        await markNotificationSent(notificationId);
+      }
+    }
   }
 }
 
+/* ============================
+   Send Task Notification
+============================ */
+async function sendTaskNotification(task) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') {
+    return;
+  }
+
+  const title = '🔔 Task Reminder - WorkBurst';
+  const dueDate = task.dueAt?.toDate ? task.dueAt.toDate() : new Date(task.dueAt);
+  const timeUntilDue = countdown(dueDate);
+  
+  const options = {
+    body: `${task.title}\nDue in: ${timeUntilDue}\nCourse: ${task.course || 'N/A'}`,
+    icon: './icons/icon-192x192.png',
+    badge: './icons/icon-72x72.png',
+    vibrate: [200, 100, 200, 100, 200],
+    tag: `task-${task.id}`,
+    requireInteraction: true,
+    data: {
+      taskId: task.id,
+      url: '/'
+    },
+    actions: [
+      { action: 'view', title: '📋 View Task' },
+      { action: 'dismiss', title: '✕ Dismiss' }
+    ]
+  };
+
+  try {
+    const notification = new Notification(title, options);
+    
+    notification.onclick = function() {
+      window.focus();
+      notification.close();
+      
+      // Open task modal if possible
+      const taskElement = document.querySelector(`[data-task-id="${task.id}"]`);
+      if (taskElement) {
+        taskElement.click();
+      }
+    };
+
+    console.log(`Notification sent for: ${task.title}`);
+    
+    // Also send via service worker for better reliability
+    if ('serviceWorker' in navigator && swRegistration) {
+      swRegistration.showNotification(title, options);
+    }
+  } catch (error) {
+    console.error('Error sending notification:', error);
+  }
+}
+
+/* ============================
+   IndexedDB for Notification Tracking
+============================ */
+let notificationDB = null;
+
+function initNotificationDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open('WorkBurstNotifications', 1);
+    
+    request.onerror = () => reject(request.error);
+    request.onsuccess = () => {
+      notificationDB = request.result;
+      resolve(notificationDB);
+    };
+    
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains('sentNotifications')) {
+        db.createObjectStore('sentNotifications', { keyPath: 'id' });
+      }
+    };
+  });
+}
+
+async function markNotificationSent(notificationId) {
+  if (!notificationDB) await initNotificationDB();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = notificationDB.transaction(['sentNotifications'], 'readwrite');
+    const store = transaction.objectStore('sentNotifications');
+    
+    const request = store.put({
+      id: notificationId,
+      sentAt: Date.now()
+    });
+    
+    request.onsuccess = () => resolve();
+    request.onerror = () => reject(request.error);
+  });
+}
+
+async function isNotificationSent(notificationId) {
+  if (!notificationDB) await initNotificationDB();
+  
+  return new Promise((resolve, reject) => {
+    const transaction = notificationDB.transaction(['sentNotifications'], 'readonly');
+    const store = transaction.objectStore('sentNotifications');
+    const request = store.get(notificationId);
+    
+    request.onsuccess = () => resolve(!!request.result);
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/* ============================
+   Cleanup Old Notification Records (weekly)
+============================ */
+async function cleanupOldNotifications() {
+  if (!notificationDB) await initNotificationDB();
+  
+  const oneWeekAgo = Date.now() - (7 * 24 * 60 * 60 * 1000);
+  
+  return new Promise((resolve, reject) => {
+    const transaction = notificationDB.transaction(['sentNotifications'], 'readwrite');
+    const store = transaction.objectStore('sentNotifications');
+    const request = store.openCursor();
+    
+    request.onsuccess = (event) => {
+      const cursor = event.target.result;
+      if (cursor) {
+        if (cursor.value.sentAt < oneWeekAgo) {
+          cursor.delete();
+        }
+        cursor.continue();
+      } else {
+        resolve();
+      }
+    };
+    
+    request.onerror = () => reject(request.error);
+  });
+}
+
+/* ============================
+   Online/Offline Detection
+============================ */
+window.addEventListener('online', () => {
+  console.log('Device online - checking for notifications');
+  checkAndSendNotifications();
+});
+
+window.addEventListener('offline', () => {
+  console.log('Device offline');
+});
+
+/* ============================
+   Visibility Change - Check when tab becomes visible
+============================ */
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    console.log('Tab visible - checking for notifications');
+    checkAndSendNotifications();
+  }
+});
+
+/* ============================
+   Update Notification Enable/Disable Handler
+   Replace the existing handler around line 600
+============================ */
+$('#enableNotifications')?.addEventListener('change', async (e) => {
+  if (e.target.checked) {
+    if (!auth.currentUser) {
+      alert('Please log in first to enable notifications.');
+      e.target.checked = false;
+      return;
+    }
+    
+    if (!('Notification' in window)) {
+      alert('This browser does not support notifications');
+      e.target.checked = false;
+      return;
+    }
+
+    const permission = await Notification.requestPermission();
+    
+    if (permission === 'granted') {
+      localStorage.setItem('notificationsEnabled', 'true');
+      await initNotificationDB();
+      startNotificationChecker();
+      
+      // Test notification
+      new Notification('WorkBurst Notifications Active', {
+        body: 'You will receive reminders 12 hours before deadlines',
+        icon: './icons/icon-192x192.png',
+        badge: './icons/icon-72x72.png'
+      });
+      
+      alert('Notifications enabled! Keep browser open for reminders.');
+    } else {
+      alert('Notification permission denied. Please enable in browser settings.');
+      e.target.checked = false;
+    }
+  } else {
+    localStorage.setItem('notificationsEnabled', 'false');
+    stopNotificationChecker();
+  }
+});
+
+/* ============================
+   Auto-start notification checker on page load
+============================ */
+document.addEventListener('DOMContentLoaded', async () => {
+  // Initialize IndexedDB
+  await initNotificationDB();
+  
+  // Restore notification preference
+  const enabled = localStorage.getItem('notificationsEnabled') === 'true';
+  if ($('#enableNotifications')) {
+    $('#enableNotifications').checked = enabled;
+    
+    if (enabled && auth.currentUser) {
+      startNotificationChecker();
+      console.log('Auto-started notification checker');
+    }
+  }
+  
+  // Cleanup old records weekly
+  const lastCleanup = localStorage.getItem('lastNotificationCleanup');
+  const oneWeek = 7 * 24 * 60 * 60 * 1000;
+  
+  if (!lastCleanup || Date.now() - parseInt(lastCleanup) > oneWeek) {
+    await cleanupOldNotifications();
+    localStorage.setItem('lastNotificationCleanup', Date.now().toString());
+  }
+});
+
+/* ============================
+   Auth State Change - Start/Stop checker
+============================ */
+auth.onAuthStateChanged((user) => {
+  setAdminUI(!!user);
+  
+  if (user && localStorage.getItem('notificationsEnabled') === 'true') {
+    startNotificationChecker();
+  } else {
+    stopNotificationChecker();
+  }
+});
 /* ============================
    Notification Status Display
 ============================ */
@@ -1041,7 +1117,8 @@ $('#enableNotifications')?.addEventListener('change', async (e) => {
       localStorage.setItem('notificationsEnabled', 'true');
       updateNotificationStatus();
       
-      new Notification('ClassSync Notifications Active', {
+      // Test notification
+      new Notification('WorkBurst Notifications Active', {
         body: 'You will receive reminders even when the browser is closed',
         icon: './icons/icon-192x192.png',
         badge: './icons/icon-72x72.png'
@@ -1056,6 +1133,8 @@ $('#enableNotifications')?.addEventListener('change', async (e) => {
   }
 });
 
+
+
 /* ============================
    Form Submit (Create/Update)
 ============================ */
@@ -1066,11 +1145,6 @@ $('#itemForm').addEventListener('submit', async (e) => {
     alert('Please log in first.');
     return;
   }
-
-  const submitBtn = e.target.querySelector('button[type="submit"]');
-  const originalText = submitBtn.innerHTML;
-  submitBtn.innerHTML = '⏳ Saving...';
-  submitBtn.disabled = true;
 
   const id = $('#itemId').value;
   const payload = {
@@ -1087,85 +1161,49 @@ $('#itemForm').addEventListener('submit', async (e) => {
   const dueAt = parseDue(payload.dueDate, payload.dueTime);
   if (!dueAt) {
     alert('Invalid date/time');
-    submitBtn.innerHTML = originalText;
-    submitBtn.disabled = false;
     return;
   }
 
-  try {
-    let imageUrls = [];
-    
-    // Handle images
-    if (selectedImages.length > 0) {
-      const newImages = selectedImages.filter(img => !img.existing);
-      const existingImages = selectedImages.filter(img => img.existing).map(img => img.url);
-      
-      if (newImages.length > 0) {
-        const taskId = id || db.collection('items').doc().id;
-        const uploadedUrls = await uploadImages(taskId);
-        imageUrls = [...existingImages, ...uploadedUrls];
-      } else {
-        imageUrls = existingImages;
-      }
-    }
+  const optimistic = { id: id || `__local_${Date.now()}`, ...payload, dueAt };
+  const local = (window.__ALL_ITEMS__ || []).slice();
 
-    const optimistic = { 
-      id: id || `__local_${Date.now()}`, 
-      ...payload, 
-      dueAt,
-      images: imageUrls
-    };
-    
-    const local = (window.__ALL_ITEMS__ || []).slice();
-
-    if (id) {
-      const idx = local.findIndex(x => x.id === id);
-      if (idx >= 0) {
-        local[idx] = optimistic;
-      } else {
-        local.unshift(optimistic);
-      }
+  if (id) {
+    const idx = local.findIndex(x => x.id === id);
+    if (idx >= 0) {
+      local[idx] = optimistic;
     } else {
       local.unshift(optimistic);
     }
+  } else {
+    local.unshift(optimistic);
+  }
 
-    window.__ALL_ITEMS__ = sortStable(local);
-    renderWeeklyTasks();
-    renderAdminTable();
+  window.__ALL_ITEMS__ = sortStable(local);
+  renderWeeklyTasks();
+  renderAdminTable();
 
-    // Update last modified time
-    lastUpdateTime = new Date();
-    updateLastUpdatedMessage();
-
+  try {
     if (id) {
       await db.collection('items').doc(id).set({
         ...payload,
         dueAt: dueAt,
-        images: imageUrls,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } else {
       await db.collection('items').add({
         ...payload,
         dueAt: dueAt,
-        images: imageUrls,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
     
+    // Schedule notification
     await scheduleNotification(payload.title, dueAt);
     
     fillForm();
-    submitBtn.innerHTML = '✅ Saved!';
-    setTimeout(() => {
-      submitBtn.innerHTML = originalText;
-      submitBtn.disabled = false;
-    }, 2000);
   } catch (err) {
     alert('Save failed: ' + err.message);
-    submitBtn.innerHTML = originalText;
-    submitBtn.disabled = false;
   }
 });
 
@@ -1173,6 +1211,7 @@ $('#itemForm').addEventListener('submit', async (e) => {
    Initialize on Page Load
 ============================ */
 document.addEventListener('DOMContentLoaded', async () => {
+  // Restore notification preference
   const enabled = localStorage.getItem('notificationsEnabled') === 'true';
   if ($('#enableNotifications')) {
     $('#enableNotifications').checked = enabled;
@@ -1191,7 +1230,7 @@ setInterval(() => {
   if (auth.currentUser && localStorage.getItem('notificationsEnabled') === 'true') {
     updateNotificationStatus();
   }
-}, 60000);
+}, 60000); // Every minute
 
 /* ============================
    Fallback: Hide Preloader
