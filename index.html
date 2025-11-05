@@ -3,13 +3,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="Stay organized and never miss a deadline with WorkBurst task management system">
+  <meta name="description" content="ClassSync - Your Ultimate Class Diary & Task Management System">
   <meta name="theme-color" content="#6366f1">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="WorkBurst">
+  <meta name="apple-mobile-web-app-title" content="ClassSync">
   
-  <title>WorkBurst - Task Manager</title>
+  <title>ClassSync - Class Diary & Task Manager</title>
   
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-152x152.png">
@@ -17,13 +17,14 @@
   
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 
 <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-storage-compat.js"></script>
 
 </head>
 <body>
@@ -31,15 +32,32 @@
   <div class="preloader" id="preloader">
     <div class="loader-animation">
       <div class="loader-spinner"></div>
-      <div class="loader-text">Loading your tasks...</div>
+      <div class="loader-text">Loading your class diary...</div>
       <div class="loader-tip" id="loaderTip">Stay organized, stay ahead</div>
     </div>
   </div>
 
-<!-- Navigation with Compact Buttons -->
+<!-- Navigation with Analytics -->
 <nav class="navbar">
   <div class="nav-container">
-    <a href="index.html" class="nav-brand">WorkBurst</a>
+    <a href="index.html" class="nav-brand">
+      <span class="brand-icon">📚</span>
+      ClassSync
+    </a>
+    
+    <!-- Live Stats -->
+    <div class="live-stats">
+      <div class="stat-item">
+        <span class="stat-icon">👥</span>
+        <span id="onlineUsers">0</span>
+        <span class="stat-label">online</span>
+      </div>
+      <div class="stat-item">
+        <span class="stat-icon">👁️</span>
+        <span id="totalVisits">0</span>
+        <span class="stat-label">visits</span>
+      </div>
+    </div>
     
     <div class="nav-actions">
       <button class="icon-btn success" id="timetableBtn" title="Timetable">
@@ -77,7 +95,7 @@
       <div class="install-content">
         <div class="install-icon">📱</div>
         <div class="install-text">
-          <strong>Install WorkBurst</strong>
+          <strong>Install ClassSync</strong>
           <p>Add to home screen for offline access</p>
         </div>
       </div>
@@ -89,10 +107,10 @@
 
     <!-- Hero Section -->
     <div class="hero">
-      <h2>Task Management</h2>
-      <p>Stay organized and never miss a deadline</p>
+      <h2>📖 Class Diary & Task Manager</h2>
+      <p>Your complete class companion - track assignments, notes, and deadlines</p>
       <div class="last-updated" id="lastUpdated">
-        <span class="update-icon"></span>
+        <span class="update-icon">🔄</span>
         <span id="updateTime">No updates yet</span>
       </div>
     </div>
@@ -109,6 +127,8 @@
           <option>Assignment</option>
           <option>Quiz</option>
           <option>Lab</option>
+          <option>Project</option>
+          <option>Exam</option>
         </select>
       </div>
     </div>
@@ -126,11 +146,11 @@
 
     <!-- Admin Panel -->
     <section class="admin-section admin-only">
-      <h2 class="section-title">Admin Panel</h2>
+      <h2 class="section-title">🛠️ Admin Panel</h2>
       
       <!-- Notification Settings -->
       <div class="notification-settings">
-        <h3>Push Notifications</h3>
+        <h3>🔔 Push Notifications</h3>
         <label class="checkbox-label">
           <input type="checkbox" id="enableNotifications" />
           <span>Enable push notifications (12 hours before deadline)</span>
@@ -149,6 +169,8 @@
             <option>Assignment</option>
             <option>Quiz</option>
             <option>Lab</option>
+            <option>Project</option>
+            <option>Exam</option>
           </select>
         </div>
 
@@ -178,14 +200,15 @@
         </div>
 
         <div class="field full">
-          <label>Notes (optional)</label>
-          <textarea id="notes" class="input textarea" placeholder="Task details..." rows="4"></textarea>
-        </div>
+          <label>Notes with Images (optional)</label>
+          <textarea id="notes" class="input textarea" placeholder="Add your notes here..." rows="4"></textarea>
+          
+
 
         <div class="form-actions">
-          <button type="submit" class="btn primary">Save Task</button>
-          <button type="button" id="resetBtn" class="btn secondary">Clear</button>
-          <button type="button" id="deleteBtn" class="btn danger" style="display:none;">Delete</button>
+          <button type="submit" class="btn primary">💾 Save Task</button>
+          <button type="button" id="resetBtn" class="btn secondary">🔄 Clear</button>
+          <button type="button" id="deleteBtn" class="btn danger" style="display:none;">🗑️ Delete</button>
         </div>
       </form>
 
@@ -214,18 +237,19 @@
     </div>
   </div>
 
+
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-content">
       <p>Developed by <a href="https://github.com/mutahharbhutta" target="_blank" rel="noopener" class="animated-name">Mutahhar Bhutta</a> | © 2025</p>
       <p>Crafted with <span class="heart">❤</span></p>
-      <p><a href="https://mutahharbhutta.github.io/pucit-cgpa-calculator/" target="_blank" rel="noopener">PUCIT GPA/CGPA Calculator</a> | <a href="https://github.com/mutahharbhutta/WorkBurst" target="_blank" rel="noopener">GitHub</a></p>
+      <p><a href="https://mutahharbhutta.github.io/pucit-cgpa-calculator/" target="_blank" rel="noopener">PUCIT GPA/CGPA Calculator</a> | <a href="https://github.com/mutahharbhutta/ClassSync" target="_blank" rel="noopener">GitHub</a></p>
     </div>
   </footer>
 
   <!-- Login Dialog -->
   <dialog id="loginDialog">
-    <h3>Admin Login</h3>
+    <h3>🔐 Admin Login</h3>
     <p>Use your Firebase credentials to access admin features.</p>
     <input id="email" class="input" placeholder="Email" type="email" />
     <input id="password" type="password" class="input" placeholder="Password" />
@@ -234,12 +258,6 @@
       <button class="btn primary" id="confirmLogin">Log In</button>
     </div>
   </dialog>
-
-  <!-- Firebase SDKs -->
-  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore-compat.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-compat.js"></script>
 
   <script src="app.js"></script>
 </body>
