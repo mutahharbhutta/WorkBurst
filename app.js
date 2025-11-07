@@ -914,7 +914,7 @@ deleteBtn?.addEventListener('click', async () => {
 ============================ */
 async function scheduleNotification(title, dueDate) {
   const notificationsEnabled = $('#enableNotifications')?.checked;
-  if (!notificationsEnabled || !auth.currentUser || !fcmToken) {
+  if (!notificationsEnabled || !auth.currentUser) {
     console.log('Notifications not enabled or user not logged in');
     return;
   }
@@ -928,6 +928,7 @@ async function scheduleNotification(title, dueDate) {
   }
 
   try {
+    // Store scheduled notification in Firestore
     await db.collection('scheduledNotifications').add({
       userId: auth.currentUser.uid,
       fcmToken: fcmToken,
@@ -938,7 +939,7 @@ async function scheduleNotification(title, dueDate) {
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
     
-    console.log(`Notification scheduled for: ${title} at ${notificationTime.toLocaleString()}`);
+    console.log(`Notification scheduled in Firestore for: ${title} at ${notificationTime.toLocaleString()}`);
     updateNotificationStatus();
   } catch (error) {
     console.error('Error scheduling notification:', error);
