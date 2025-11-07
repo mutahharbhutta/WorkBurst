@@ -44,11 +44,11 @@ document.getElementById('downloadPDF').addEventListener('click', async () => {
     const pageHeight = pdf.internal.pageSize.getHeight();
     pdf.setFontSize(10);
     pdf.setTextColor(100, 100, 100);
-    pdf.text('Developed by Mutahhar Bhutta | WorkBurst - Task Management System', 10, pageHeight - 10);
+    pdf.text('Developed by Mutahhar Bhutta | ClassSync - Task Management System', 10, pageHeight - 10);
     pdf.text('GitHub: github.com/mutahharbhutta', 10, pageHeight - 5);
-    
-    pdf.save('My-Timetable-WorkBurst.pdf');
-    
+
+    pdf.save('BSDSF24M-Timetable-ClassSync.pdf');
+
     button.innerHTML = '✓ Downloaded!';
     setTimeout(() => {
       button.innerHTML = originalText;
@@ -82,7 +82,7 @@ document.getElementById('downloadExcel').addEventListener('click', () => {
       [''],
       [''],
       ['Developed by Mutahhar Bhutta'],
-      ['WorkBurst - Task Management System'],
+      ['ClassSync - Task Management System'],
       ['GitHub: github.com/mutahharbhutta']
     ];
 
@@ -97,7 +97,7 @@ document.getElementById('downloadExcel').addEventListener('click', () => {
     const url = URL.createObjectURL(blob);
     
     link.setAttribute('href', url);
-    link.setAttribute('download', 'My-Timetable-WorkBurst.csv');
+    link.setAttribute('download', 'BSDSF24M-ClassSync.csv');
     link.style.visibility = 'hidden';
     
     document.body.appendChild(link);
