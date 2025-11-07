@@ -103,7 +103,7 @@ async function initializeAnalytics() {
   }
 }
 
-// Cleanup old presence records
+// Cleanup old presence records daily
 setInterval(async () => {
   try {
     const cutoff = new Date(Date.now() - 5 * 60 * 1000); // 5 minutes ago
@@ -120,41 +120,102 @@ setInterval(async () => {
   }
 }, 60000); // Run every minute
 
+/* ============================
+   Image Upload Functionality
+============================ */
+let selectedImages = [];
+
+$('#imageUpload').addEventListener('change', (e) => {
+  const files = Array.from(e.target.files);
+  files.forEach(file => {
+    if (file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        selectedImages.push({
+          file: file,
+          dataUrl: e.target.result,
+          id: Date.now() + Math.random()
+        });
+        renderImagePreviews();
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+  e.target.value = '';
+});
+
+function renderImagePreviews() {
+  const previewContainer = $('#imagePreview');
+  previewContainer.innerHTML = selectedImages.map((img, idx) => `
+    <div class="image-preview-item">
+      <img src="${img.dataUrl}" alt="Preview ${idx + 1}" />
+      <button type="button" class="remove-image" data-idx="${idx}">×</button>
+    </div>
+  `).join('');
+
+  $$('.remove-image').forEach(btn => {
+    btn.addEventListener('click', (e) => {
+      const idx = parseInt(e.target.dataset.idx);
+      selectedImages.splice(idx, 1);
+      renderImagePreviews();
+    });
+  });
+}
+
+async function uploadImages(taskId) {
+  const uploadPromises = selectedImages.map(async (img) => {
+    const filename = `tasks/${taskId}/${Date.now()}_${img.file.name}`;
+    const storageRef = storage.ref(filename);
+    await storageRef.put(img.file);
+    return await storageRef.getDownloadURL();
+  });
+  return await Promise.all(uploadPromises);
+}
 
 /* ============================
-   Firebase Cloud Messaging Setup - FIXED
+   Image Viewer Modal
+============================ */
+const imageViewerModal = $('#imageViewerModal');
+const viewerImage = $('#viewerImage');
+const closeImageViewer = $('#closeImageViewer');
+
+function openImageViewer(imageUrl) {
+  viewerImage.src = imageUrl;
+  imageViewerModal.classList.add('active');
+  document.body.style.overflow = 'hidden';
+}
+
+function closeImageViewerModal() {
+  imageViewerModal.classList.remove('active');
+  document.body.style.overflow = '';
+}
+
+closeImageViewer.addEventListener('click', closeImageViewerModal);
+imageViewerModal.addEventListener('click', (e) => {
+  if (e.target === imageViewerModal) closeImageViewerModal();
+});
+
+/* ============================
+   Firebase Cloud Messaging Setup
 ============================ */
 let messaging = null;
 let fcmToken = null;
 
 async function initializeMessaging() {
   try {
-    if (!('Notification' in window)) {
-      console.log('Notifications not supported');
-      return false;
-    }
-
-    if (!firebase.messaging.isSupported()) {
-      console.log('FCM not supported in this browser');
-      return false;
-    }
-
     messaging = firebase.messaging();
-    
     const permission = await Notification.requestPermission();
     if (permission !== 'granted') {
       console.log('Notification permission denied');
       return false;
     }
     
-    // Get FCM token
     fcmToken = await messaging.getToken({
       vapidKey: 'BNdK4SCRa8WbmM_bqj51En-u3uzYFr4omivYxxyZQ4GA0tImdI5bpf5PQ6J015474caZlT5Q7mEUPv26_uYFiM4'
     });
     
-    console.log('FCM Token obtained:', fcmToken);
+    console.log('FCM Token:', fcmToken);
     
-    // Save token to Firestore
     if (auth.currentUser) {
       await db.collection('users').doc(auth.currentUser.uid).set({
         fcmToken: fcmToken,
@@ -163,19 +224,15 @@ async function initializeMessaging() {
       }, { merge: true });
     }
     
-    // Handle foreground messages
     messaging.onMessage((payload) => {
       console.log('Foreground message received:', payload);
-      const notificationTitle = payload.notification?.title || 'ClassSync Reminder';
-      const notificationOptions = {
-        body: payload.notification?.body || 'You have a task due soon!',
+      new Notification(payload.notification.title, {
+        body: payload.notification.body,
         icon: './icons/icon-192x192.png',
         badge: './icons/icon-72x72.png',
         vibrate: [200, 100, 200],
         requireInteraction: true
-      };
-      
-      new Notification(notificationTitle, notificationOptions);
+      });
     });
     
     return true;
@@ -329,22 +386,10 @@ function getWeekLabel(d) {
 ============================ */
 function applyTheme(t) {
   document.documentElement.className = t;
-  document.body.className = t;
-  // Save to localStorage for persistence
-  try {
-    localStorage.setItem('theme', t);
-  } catch (e) {
-    console.warn('Could not save theme:', e);
-  }
+  localStorage.setItem('theme', t);
 }
 
-// Apply saved theme on load
-try {
-  const savedTheme = localStorage.getItem('theme') || 'darkest';
-  applyTheme(savedTheme);
-} catch (e) {
-  applyTheme('darkest');
-}
+applyTheme(localStorage.getItem('theme') || 'darkest');
 
 const themeBtn = $('#themeBtn');
 const themeDropdown = $('#themeDropdown');
@@ -431,11 +476,8 @@ function setAdminUI(isAdmin) {
 
 auth.onAuthStateChanged(async (user) => {
   setAdminUI(!!user);
-  if (user) {
-    const enabledNotifications = localStorage.getItem('notificationsEnabled') === 'true';
-    if (enabledNotifications) {
-      await initializeMessaging();
-    }
+  if (user && localStorage.getItem('notificationsEnabled') === 'true') {
+    await initializeMessaging();
   }
 });
 
@@ -447,7 +489,7 @@ $('#timetableBtn').addEventListener('click', () => {
 });
 
 /* ============================
-   Data Management - FIXED LAST UPDATED
+   Data Management
 ============================ */
 const weeklyTasksContainer = $('#weeklyTasks');
 const adminTbody = $('#adminTbody');
@@ -774,7 +816,7 @@ adminTbody.addEventListener('click', async (e) => {
       renderWeeklyTasks();
       renderAdminTable();
 
-      // Update last modified time - FIXED
+      // Update last modified time
       lastUpdateTime = new Date();
       updateLastUpdatedMessage();
 
@@ -805,7 +847,7 @@ weeklyTasksContainer.addEventListener('click', async (e) => {
   renderWeeklyTasks();
   renderAdminTable();
 
-  // Update last modified time - FIXED
+  // Update last modified time
   lastUpdateTime = new Date();
   updateLastUpdatedMessage();
 
@@ -897,7 +939,7 @@ deleteBtn?.addEventListener('click', async () => {
   renderWeeklyTasks();
   renderAdminTable();
 
-  // Update last modified time - FIXED
+  // Update last modified time
   lastUpdateTime = new Date();
   updateLastUpdatedMessage();
 
@@ -910,7 +952,7 @@ deleteBtn?.addEventListener('click', async () => {
 });
 
 /* ============================
-   Schedule Notification with FCM - FIXED
+   Schedule Notification with FCM
 ============================ */
 async function scheduleNotification(title, dueDate) {
   const notificationsEnabled = $('#enableNotifications')?.checked;
@@ -928,7 +970,6 @@ async function scheduleNotification(title, dueDate) {
   }
 
   try {
-    // Store scheduled notification in Firestore
     await db.collection('scheduledNotifications').add({
       userId: auth.currentUser.uid,
       fcmToken: fcmToken,
@@ -968,7 +1009,7 @@ async function updateNotificationStatus() {
       statusEl.innerHTML = `📬 ${upcoming.length} reminder${upcoming.length !== 1 ? 's' : ''} scheduled`;
       statusEl.style.color = 'var(--success)';
     } else {
-      statusEl.innerHTML = '🔭 No upcoming reminders';
+      statusEl.innerHTML = '📭 No upcoming reminders';
       statusEl.style.color = 'var(--text-secondary)';
     }
   } catch (error) {
@@ -977,7 +1018,7 @@ async function updateNotificationStatus() {
 }
 
 /* ============================
-   Notification Enable/Disable - FIXED
+   Notification Enable/Disable
 ============================ */
 $('#enableNotifications')?.addEventListener('change', async (e) => {
   if (e.target.checked) {
@@ -996,38 +1037,27 @@ $('#enableNotifications')?.addEventListener('change', async (e) => {
     const success = await initializeMessaging();
     
     if (success) {
-      alert('Notifications enabled! You will receive reminders 12 hours before deadlines.');
-      try {
-        localStorage.setItem('notificationsEnabled', 'true');
-      } catch (err) {
-        console.warn('Could not save notification preference:', err);
-      }
+      alert('Notifications enabled! You will receive reminders 12 hours before deadlines, even when the app is closed.');
+      localStorage.setItem('notificationsEnabled', 'true');
       updateNotificationStatus();
       
-      // Show test notification
-      if (Notification.permission === 'granted') {
-        new Notification('ClassSync Notifications Active', {
-          body: 'You will receive reminders 12 hours before deadlines',
-          icon: './icons/icon-192x192.png',
-          badge: './icons/icon-72x72.png'
-        });
-      }
+      new Notification('ClassSync Notifications Active', {
+        body: 'You will receive reminders even when the browser is closed',
+        icon: './icons/icon-192x192.png',
+        badge: './icons/icon-72x72.png'
+      });
     } else {
       alert('Failed to initialize notifications. Please check browser permissions.');
       e.target.checked = false;
     }
   } else {
-    try {
-      localStorage.setItem('notificationsEnabled', 'false');
-    } catch (err) {
-      console.warn('Could not save notification preference:', err);
-    }
+    localStorage.setItem('notificationsEnabled', 'false');
     updateNotificationStatus();
   }
 });
 
 /* ============================
-   Form Submit (Create/Update) - FIXED
+   Form Submit (Create/Update)
 ============================ */
 $('#itemForm').addEventListener('submit', async (e) => {
   e.preventDefault();
@@ -1103,7 +1133,7 @@ $('#itemForm').addEventListener('submit', async (e) => {
     renderWeeklyTasks();
     renderAdminTable();
 
-    // Update last modified time - FIXED
+    // Update last modified time
     lastUpdateTime = new Date();
     updateLastUpdatedMessage();
 
@@ -1124,7 +1154,6 @@ $('#itemForm').addEventListener('submit', async (e) => {
       });
     }
     
-    // Schedule notification
     await scheduleNotification(payload.title, dueAt);
     
     fillForm();
@@ -1144,13 +1173,7 @@ $('#itemForm').addEventListener('submit', async (e) => {
    Initialize on Page Load
 ============================ */
 document.addEventListener('DOMContentLoaded', async () => {
-  let enabled = false;
-  try {
-    enabled = localStorage.getItem('notificationsEnabled') === 'true';
-  } catch (e) {
-    console.warn('Could not read notification preference:', e);
-  }
-  
+  const enabled = localStorage.getItem('notificationsEnabled') === 'true';
   if ($('#enableNotifications')) {
     $('#enableNotifications').checked = enabled;
     
@@ -1165,14 +1188,7 @@ document.addEventListener('DOMContentLoaded', async () => {
    Update notification status periodically
 ============================ */
 setInterval(() => {
-  let enabled = false;
-  try {
-    enabled = localStorage.getItem('notificationsEnabled') === 'true';
-  } catch (e) {
-    // Ignore
-  }
-  
-  if (auth.currentUser && enabled) {
+  if (auth.currentUser && localStorage.getItem('notificationsEnabled') === 'true') {
     updateNotificationStatus();
   }
 }, 60000);
