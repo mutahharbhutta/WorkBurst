@@ -237,29 +237,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Test Notification Button
-  const testNotifBtn = $('#testNotifBtn');
-  if (testNotifBtn) {
-    testNotifBtn.addEventListener('click', async () => {
-      // Check permission first
-      if (Notification.permission === 'granted') {
-        new Notification('TaskLog Test', {
-          body: 'Notifications are working perfectly!',
-          icon: './icons/icon-192x192.png'
-        });
-      } else if (Notification.permission !== 'denied') {
-        const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-          new Notification('TaskLog Test', {
-            body: 'Notifications enabled successfully!',
-            icon: './icons/icon-192x192.png'
-          });
-        }
-      } else {
-        alert('Notifications are blocked. Please enable them in your browser settings.');
-      }
-    });
-  }
+
 
   // Initialize analytics
   initializeAnalytics();
@@ -1061,14 +1039,12 @@ $('#itemForm').addEventListener('submit', async (e) => {
       await db.collection('items').doc(id).set({
         ...payload,
         dueAt: dueAt,
-        images: imageUrls,
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     } else {
       await db.collection('items').add({
         ...payload,
         dueAt: dueAt,
-        images: imageUrls,
         createdAt: firebase.firestore.FieldValue.serverTimestamp(),
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
