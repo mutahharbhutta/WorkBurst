@@ -121,79 +121,9 @@ setInterval(async () => {
 }, 60000); // Run every minute
 
 /* ============================
-   Image Upload Functionality
+   Image Upload Removed
 ============================ */
-let selectedImages = [];
-
-$('#imageUpload').addEventListener('change', (e) => {
-  const files = Array.from(e.target.files);
-  files.forEach(file => {
-    if (file.type.startsWith('image/')) {
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        selectedImages.push({
-          file: file,
-          dataUrl: e.target.result,
-          id: Date.now() + Math.random()
-        });
-        renderImagePreviews();
-      };
-      reader.readAsDataURL(file);
-    }
-  });
-  e.target.value = '';
-});
-
-function renderImagePreviews() {
-  const previewContainer = $('#imagePreview');
-  previewContainer.innerHTML = selectedImages.map((img, idx) => `
-    <div class="image-preview-item">
-      <img src="${img.dataUrl}" alt="Preview ${idx + 1}" />
-      <button type="button" class="remove-image" data-idx="${idx}">×</button>
-    </div>
-  `).join('');
-
-  $$('.remove-image').forEach(btn => {
-    btn.addEventListener('click', (e) => {
-      const idx = parseInt(e.target.dataset.idx);
-      selectedImages.splice(idx, 1);
-      renderImagePreviews();
-    });
-  });
-}
-
-async function uploadImages(taskId) {
-  const uploadPromises = selectedImages.map(async (img) => {
-    const filename = `tasks/${taskId}/${Date.now()}_${img.file.name}`;
-    const storageRef = storage.ref(filename);
-    await storageRef.put(img.file);
-    return await storageRef.getDownloadURL();
-  });
-  return await Promise.all(uploadPromises);
-}
-
-/* ============================
-   Image Viewer Modal
-============================ */
-const imageViewerModal = $('#imageViewerModal');
-const viewerImage = $('#viewerImage');
-const closeImageViewer = $('#closeImageViewer');
-
-function openImageViewer(imageUrl) {
-  viewerImage.src = imageUrl;
-  imageViewerModal.classList.add('active');
-  document.body.style.overflow = 'hidden';
-}
-
-function closeImageViewerModal() {
-  imageViewerModal.classList.remove('active');
-  document.body.style.overflow = '';
-}
-
-closeImageViewer.addEventListener('click', closeImageViewerModal);
-imageViewerModal.addEventListener('click', (e) => {
-  if (e.target === imageViewerModal) closeImageViewerModal();
-});
+// Image upload features have been removed as per new requirements.
 
 /* ============================
    Firebase Cloud Messaging Setup
@@ -304,6 +234,30 @@ document.addEventListener('DOMContentLoaded', () => {
   if (dismissBtn) {
     dismissBtn.addEventListener('click', () => {
       if (installBanner) installBanner.style.display = 'none';
+    });
+  }
+
+  // Test Notification Button
+  const testNotifBtn = $('#testNotifBtn');
+  if (testNotifBtn) {
+    testNotifBtn.addEventListener('click', async () => {
+      // Check permission first
+      if (Notification.permission === 'granted') {
+        new Notification('TaskLog Test', {
+          body: 'Notifications are working perfectly!',
+          icon: './icons/icon-192x192.png'
+        });
+      } else if (Notification.permission !== 'denied') {
+        const permission = await Notification.requestPermission();
+        if (permission === 'granted') {
+          new Notification('TaskLog Test', {
+            body: 'Notifications enabled successfully!',
+            icon: './icons/icon-192x192.png'
+          });
+        }
+      } else {
+        alert('Notifications are blocked. Please enable them in your browser settings.');
+      }
     });
   }
 
@@ -585,27 +539,15 @@ function openTaskModal(task) {
   const countdownClass = overdue ? 'overdue' : (soon ? 'soon' : 'safe');
   const dayOfWeek = getDayOfWeek(due);
 
-  let imagesHtml = '';
-  if (task.images && task.images.length > 0) {
-    imagesHtml = `
-      <div class="task-modal-images">
-        <h4>📷 Attached Images</h4>
-        <div class="image-gallery">
-          ${task.images.map(url => `
-            <img src="${escapeAttr(url)}" alt="Task image" class="gallery-image" data-url="${escapeAttr(url)}" />
-          `).join('')}
-        </div>
-      </div>
-    `;
-  }
+  const notesHtml = task.notes
+    ? `<div class="task-modal-notes markdown-body">${marked.parse(escapeHtml(task.notes))}</div>`
+    : '<div class="task-modal-notes">No additional notes</div>';
 
   taskModalBody.innerHTML = `
     <span class="badge ${badgeClass}">${task.type || '—'}</span>
     <h2>${escapeHtml(task.title || 'Untitled')}</h2>
     ${task.course ? `<div class="task-modal-course">${escapeHtml(task.course)}</div>` : ''}
-    ${task.notes ? `<div class="task-modal-notes">${escapeHtml(task.notes)}</div>` : '<div class="task-modal-notes">No additional notes</div>'}
-    
-    ${imagesHtml}
+    ${notesHtml}
     
     <div class="task-modal-info">
       <div class="task-modal-info-item">
@@ -667,6 +609,9 @@ document.addEventListener('keydown', (e) => {
 /* ============================
    Render Weekly Tasks
 ============================ */
+/* ============================
+   Render Weekly Tasks
+============================ */
 function renderWeeklyTasks() {
   const list = filteredItems();
   weeklyTasksContainer.innerHTML = '';
@@ -714,17 +659,19 @@ function renderWeeklyTasks() {
         const countdownClass = overdue ? 'overdue' : (soon ? 'soon' : 'safe');
         const dayOfWeek = getDayOfWeek(due);
 
-        const hasImages = it.images && it.images.length > 0;
-        const imageIndicator = hasImages ? `<span class="image-indicator">📷 ${it.images.length}</span>` : '';
-
         const el = document.createElement('article');
         el.className = 'card';
         el.dataset.taskId = it.id;
+
+        // Plain text preview for notes (strip markdown)
+        const notesPreview = it.notes ?
+          marked.parse(it.notes).replace(/<[^>]*>?/gm, '').substring(0, 100) + (it.notes.length > 100 ? '...' : '')
+          : '';
+
         el.innerHTML = `
           <div class="card-header">
             <span class="badge ${badgeClass}">${it.type || '—'}</span>
             <div class="card-actions">
-              ${imageIndicator}
               ${auth.currentUser ? `<button class="icon-btn" data-del-card="${it.id}" title="Delete">×</button>` : ''}
             </div>
           </div>
@@ -733,7 +680,7 @@ function renderWeeklyTasks() {
           
           ${it.course ? `<div class="card-course">${escapeHtml(it.course)}</div>` : ''}
           
-          ${it.notes ? `<div class="card-notes">${escapeHtml(it.notes.substring(0, 100))}${it.notes.length > 100 ? '...' : ''}</div>` : ''}
+          ${it.notes ? `<div class="card-notes">${notesPreview}</div>` : ''}
           
           <div class="card-footer">
             <div class="due-info">
@@ -911,8 +858,7 @@ function fillForm() {
   $('#dueTime').value = '';
   $('#link').value = '';
   $('#notes').value = '';
-  selectedImages = [];
-  renderImagePreviews();
+  $('#notes').value = '';
 
   if (deleteBtn) {
     deleteBtn.style.display = 'none';
@@ -1187,11 +1133,61 @@ document.addEventListener('DOMContentLoaded', async () => {
 /* ============================
    Update notification status periodically
 ============================ */
+/* ============================
+   Local Notification Check
+   Runs every minute to check for upcoming deadlines
+============================ */
 setInterval(() => {
-  if (auth.currentUser && localStorage.getItem('notificationsEnabled') === 'true') {
-    updateNotificationStatus();
+  // Check if notifications are enabled by user preference (even if not logged in)
+  // We'll use a localStorage flag that doesn't strictly depend on auth for local reminders
+  if (localStorage.getItem('notificationsEnabled') !== 'true' || Notification.permission !== 'granted') {
+    return;
   }
-}, 60000);
+
+  const now = Date.now();
+  const allTasks = window.__ALL_ITEMS__ || [];
+
+  allTasks.forEach(task => {
+    if (task.status === 'completed') return;
+
+    // Check if task has already been notified LOCALLY
+    // We store this in localStorage to avoid repeated alerts
+    const notifiedKey = `notified_${task.id}`;
+    if (localStorage.getItem(notifiedKey)) return;
+
+    const due = task.dueAt && task.dueAt.toDate ? task.dueAt.toDate() : new Date(task.dueAt);
+    const diff = due.getTime() - now;
+
+    // Notify if due in ~12 hours (between 11.5 and 12.5 hours) for "Upcoming"
+    // OR if due in ~1 hour for "Urgent"
+
+    // 12 Hours Reminder
+    if (diff > 11.5 * 60 * 60 * 1000 && diff < 12.5 * 60 * 60 * 1000) {
+      new Notification(`Upcoming: ${task.title}`, {
+        body: `Due in 12 hours!`,
+        icon: './icons/icon-192x192.png',
+        tag: `reminder-${task.id}`
+      });
+      localStorage.setItem(notifiedKey, 'true');
+    }
+
+    // 1 Hour Reminder
+    else if (diff > 0 && diff < 60 * 60 * 1000) {
+      // Use a different key for urgent reminder
+      const urgentKey = `urgent_${task.id}`;
+      if (!localStorage.getItem(urgentKey)) {
+        new Notification(`Urgent: ${task.title}`, {
+          body: `Due in less than 1 hour!`,
+          icon: './icons/icon-192x192.png',
+          tag: `urgent-${task.id}`,
+          requireInteraction: true
+        });
+        localStorage.setItem(urgentKey, 'true');
+      }
+    }
+  });
+
+}, 60000); // Check every minute
 
 /* ============================
    Fallback: Hide Preloader

@@ -80,13 +80,11 @@ body.notebook {
   --primary: #d2691e;
   --primary-hover: #b8591c;
   --shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
-  background-image: 
-    repeating-linear-gradient(
-      transparent,
+  background-image:
+    repeating-linear-gradient(transparent,
       transparent 31px,
       #add8e6 31px,
-      #add8e6 32px
-    );
+      #add8e6 32px);
 }
 
 /* Container - Centered */
@@ -252,29 +250,85 @@ body.notebook {
 }
 
 /* Subject Colors */
-/* Subject Colors - Unified Green Theme */
-.course-cell {
-  background: #a2d165; /* Light green from image */
-  color: #000000;
-  position: relative;
+/* Subject Gradients - Cool & Vibrant */
+.course-cell.algo {
+  background: linear-gradient(135deg, #4f46e5 0%, #3730a3 100%);
+  /* Indigo */
+  border-left: none;
+  color: #fff;
+  box-shadow: 0 4px 6px -1px rgba(79, 70, 229, 0.2);
 }
 
-.course-cell .subject-name {
-  color: #000000;
-  font-weight: 700;
+.course-cell.db {
+  background: linear-gradient(135deg, #10b981 0%, #047857 100%);
+  /* Emerald */
+  border-left: none;
+  color: #fff;
+  box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2);
 }
 
-.course-cell .time,
-.course-cell .room,
-.course-cell .instructor {
-  color: #1a1a1a;
-  font-size: 11px;
-  font-weight: 500;
+.course-cell.calc {
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  /* Orange */
+  border-left: none;
+  color: #fff;
+  box-shadow: 0 4px 6px -1px rgba(249, 115, 22, 0.2);
+}
+
+.course-cell.net {
+  background: linear-gradient(135deg, #d946ef 0%, #a21caf 100%);
+  /* Fuchsia */
+  border-left: none;
+  color: #fff;
+  box-shadow: 0 4px 6px -1px rgba(217, 70, 239, 0.2);
+}
+
+.course-cell.ai {
+  background: linear-gradient(135deg, #ef4444 0%, #b91c1c 100%);
+  /* Red */
+  border-left: none;
+  color: #fff;
+  box-shadow: 0 4px 6px -1px rgba(239, 68, 68, 0.2);
+}
+
+.course-cell.viz {
+  background: linear-gradient(135deg, #0ea5e9 0%, #0369a1 100%);
+  /* Sky */
+  border-left: none;
+  color: #fff;
+  box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2);
 }
 
 .course-cell.lab {
-  border-left: none; /* Removed existing lab border style if not needed, or keep for distinction */
-  /* The image doesn't show a distinct border style for labs, just the text */
+  background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%);
+  /* Teal */
+  border-left: none;
+  color: #fff;
+  box-shadow: 0 4px 6px -1px rgba(20, 184, 166, 0.2);
+}
+
+/* Ensure text readability on gradients */
+.course-cell .subject-name {
+  font-weight: 700;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  margin-bottom: 4px;
+}
+
+.course-cell .instructor,
+.course-cell .time,
+.course-cell .room {
+  color: rgba(255, 255, 255, 0.9);
+  font-size: 0.85rem;
+}
+
+.course-cell .smart-room-tag {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 0.75rem;
+  display: inline-block;
+  margin-top: 4px;
 }
 
 .smart-room-tag {
@@ -286,12 +340,13 @@ body.notebook {
   font-weight: 700;
   display: inline-block;
   margin-top: 4px;
-  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
 }
 
 /* Room Strip Header */
 .room-row td {
-  background: #d1d5db; /* Gray strip */
+  background: #d1d5db;
+  /* Gray strip */
   color: #000000;
   font-weight: 700;
   text-align: center;
@@ -406,26 +461,17 @@ body.notebook {
   }
 }
 
-@media (max-width: 600px) {
-  .container {
-    padding: 12px;
+@media (max-width: 768px) {
+  .university-header h2 {
+    font-size: 1rem !important;
   }
 
-  .header {
-    flex-direction: column;
-    align-items: flex-start;
+  .university-header h3 {
+    font-size: 0.9rem !important;
   }
 
-  .header-actions {
-    width: 100%;
-  }
-
-  .btn {
-    flex: 1;
-    justify-content: center;
-  }
-
-  .timetable {
-    min-width: 450px;
+  .university-header p,
+  .university-header div {
+    font-size: 0.75rem !important;
   }
 }

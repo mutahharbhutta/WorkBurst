@@ -21,6 +21,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
     rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
   <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js"></script>
   <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js"></script>
@@ -59,11 +60,17 @@
             <span>🎨</span>
           </button>
           <div class="theme-dropdown" id="themeDropdown">
-            <button data-theme="darkest">Professional Dark</button>
+            <button data-theme="darkest">Midnight Pro</button>
+            <button data-theme="oceanic">Oceanic Blue</button>
+            <button data-theme="sunset">Sunset Vibes</button>
+            <button data-theme="cyber">Cyberpunk Neon</button>
             <button data-theme="classic">Classic Light</button>
-            <button data-theme="modern">Modern Slate</button>
           </div>
         </div>
+
+        <button class="icon-btn" id="testNotifBtn" title="Test Notification">
+          <span>🔔</span>
+        </button>
 
         <button class="icon-btn" id="loginBtn" title="Admin Login">
           <span>🔐</span>
@@ -95,10 +102,11 @@
 
     <!-- Hero / Dashboard Header -->
     <div class="hero">
-      <h2>Manage assignments, quizzes, and academic tasks efficiently.</h2>
-      <!-- <p>Manage assignments, quizzes, and academic tasks efficiently.</p> -->
+      <div class="hero-welcome">
+        <h2>Student Dashboard</h2>
+        <p>Your academic command center</p>
+      </div>
       <div class="last-updated" id="lastUpdated">
-        <!-- <span class="update-icon">🔄</span> -->
         <span id="updateTime">No updates yet</span>
       </div>
     </div>
@@ -188,17 +196,10 @@
         </div>
 
         <div class="field full">
-          <label>Notes with Images (optional)</label>
-          <textarea id="notes" class="input textarea" placeholder="Add your notes here..." rows="4"></textarea>
-
-          <!-- Image Upload Section -->
-          <div class="image-upload-section">
-            <label for="imageUpload" class="image-upload-label">
-              <span class="upload-icon">📷</span>
-              <span>Add Images to Notes</span>
-              <input type="file" id="imageUpload" accept="image/*" multiple style="display: none;" />
-            </label>
-            <div id="imagePreview" class="image-preview"></div>
+          <label>Additional Notes (Markdown Supported)</label>
+          <textarea id="notes" class="input textarea" placeholder="**Bold**, *Italic*, [Links](https://...), - Lists"
+            rows="6"></textarea>
+          <div style="font-size: 0.8rem; color: var(--text-secondary); margin-top: 4px;">Supports Markdown formatting
           </div>
         </div>
 
@@ -234,11 +235,7 @@
     </div>
   </div>
 
-  <!-- Image Viewer Modal -->
-  <div class="image-viewer-modal" id="imageViewerModal">
-    <button class="image-viewer-close" id="closeImageViewer">×</button>
-    <img id="viewerImage" src="" alt="Full size image" />
-  </div>
+
 
   <!-- Footer -->
   <footer class="footer">

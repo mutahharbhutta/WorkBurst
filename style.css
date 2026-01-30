@@ -2,45 +2,115 @@
    CSS Variables - Enhanced Themes
 ======================================== */
 :root {
-  /* TaskLog Professional Theme (Slate & Emerald) */
+  /* GLOBAL TYPOGRAPHY */
+  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* DEFAULT THEME: Midnight Pro */
+  --bg: #09090b;
+  /* Zinc 950 */
+  --surface: #18181b;
+  /* Zinc 900 */
+  --card: #27272a;
+  /* Zinc 800 */
+  --text: #fafafa;
+  /* Zinc 50 */
+  --text-secondary: #a1a1aa;
+  /* Zinc 400 */
+  --border: #3f3f46;
+  /* Zinc 700 */
+  --primary: #10b981;
+  /* Emerald 500 */
+  --primary-hover: #059669;
+  /* Emerald 600 */
+  --accent: #8b5cf6;
+  /* Violet 500 */
+  --danger: #ef4444;
+  /* Red 500 */
+  --success: #10b981;
+  /* Emerald 500 */
+  --warning: #f59e0b;
+  /* Amber 500 */
+  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -1px rgba(0, 0, 0, 0.3);
+  --glass: rgba(39, 39, 42, 0.6);
+}
+
+/* THEME: Oceanic Blue */
+html.oceanic {
   --bg: #0f172a;
   /* Slate 900 */
   --surface: #1e293b;
   /* Slate 800 */
   --card: #334155;
   /* Slate 700 */
-  --text: #f8fafc;
-  /* Slate 50 */
+  --text: #f1f5f9;
+  /* Slate 100 */
   --text-secondary: #94a3b8;
   /* Slate 400 */
   --border: #475569;
   /* Slate 600 */
-  --primary: #10b981;
-  /* Emerald 500 */
-  --primary-hover: #059669;
-  /* Emerald 600 */
-  --success: #10b981;
-  --danger: #ef4444;
-  /* Red 500 */
-  --warning: #f59e0b;
-  /* Amber 500 */
-  --shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
-  --accent: #3b82f6;
-  /* Blue 500 */
-  --font-main: 'Inter', sans-serif;
+  --primary: #0ea5e9;
+  /* Sky 500 */
+  --primary-hover: #0284c7;
+  /* Sky 600 */
+  --accent: #38bdf8;
+  /* Sky 400 */
 }
 
-.light-theme {
+/* THEME: Sunset Vibes */
+html.sunset {
+  --bg: #2a0a18;
+  /* Very dark pink/purple */
+  --surface: #451a2b;
+  --card: #5e283b;
+  --text: #fff0f5;
+  --text-secondary: #dcbbc8;
+  --border: #803d54;
+  --primary: #f43f5e;
+  /* Rose 500 */
+  --primary-hover: #e11d48;
+  /* Rose 600 */
+  --accent: #fbbf24;
+  /* Amber 400 */
+}
+
+/* THEME: Cyberpunk Neon */
+html.cyber {
+  --bg: #000000;
+  --surface: #0a0a0a;
+  --card: #121212;
+  --text: #e0e0e0;
+  --text-secondary: #888;
+  --border: #333;
+  --primary: #00ff41;
+  /* Neon Green */
+  --primary-hover: #00cc33;
+  --accent: #ff00ff;
+  /* Magenta */
+  --shadow: 0 0 10px rgba(0, 255, 65, 0.2);
+}
+
+/* THEME: Classic Light */
+html.classic {
   --bg: #f8fafc;
+  /* Slate 50 */
   --surface: #ffffff;
-  --card: #f1f5f9;
+  /* White */
+  --card: #ffffff;
+  /* White */
   --text: #0f172a;
+  /* Slate 900 */
   --text-secondary: #64748b;
+  /* Slate 500 */
   --border: #e2e8f0;
-  --primary: #059669;
-  --primary-hover: #047857;
+  /* Slate 200 */
+  --primary: #2563eb;
+  /* Blue 600 */
+  --primary-hover: #1d4ed8;
+  /* Blue 700 */
+  --accent: #4f46e5;
+  /* Indigo 600 */
   --shadow: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
-  --accent: #2563eb;
+  --glass: rgba(255, 255, 255, 0.8);
 }
 
 /* ========================================
@@ -53,7 +123,7 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', sans-serif;
+  font-family: var(--font-main);
   background: var(--bg);
   color: var(--text);
   line-height: 1.6;
