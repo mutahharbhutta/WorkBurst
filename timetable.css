@@ -453,6 +453,44 @@ body.notebook {
   }
 }
 
+/* Screenshot Export Styles */
+.screenshot-mode {
+  width: 1920px !important;
+  height: 1080px !important;
+  aspect-ratio: 16 / 9 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  z-index: -9999 !important;
+  background: var(--bg) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  padding: 60px !important;
+  box-sizing: border-box !important;
+}
+
+.screenshot-mode .header {
+  margin-bottom: 40px !important;
+}
+
+.screenshot-mode .header-actions {
+  display: none !important;
+}
+
+.screenshot-mode .timetable-wrapper {
+  flex-grow: 1 !important;
+  display: flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  border: none !important;
+}
+
+.screenshot-mode .timetable {
+  width: 100% !important;
+  font-size: 18px !important;
+  /* Larger text for export */
+}
+
 @media (max-width: 768px) {
   .university-header h2 {
     font-size: 1rem !important;
