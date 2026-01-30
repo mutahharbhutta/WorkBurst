@@ -296,15 +296,7 @@ body.notebook {
   /* Sky */
   border-left: none;
   color: #fff;
-  box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.2);
-}
-
-.course-cell.lab {
-  background: linear-gradient(135deg, #14b8a6 0%, #0f766e 100%);
-  /* Teal */
-  border-left: none;
-  color: #fff;
-  box-shadow: 0 4px 6px -1px rgba(20, 184, 166, 0.2);
+  box-shadow: 0 44px 6px -1px rgba(14, 165, 233, 0.2);
 }
 
 /* Ensure text readability on gradients */
