@@ -66,11 +66,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
       const canvas = await html2canvas(clone, {
         backgroundColor: getComputedStyle(document.body).getPropertyValue('--bg') || '#09090b',
-        scale: 2, // High resolution
-        logging: true, // Enable logging for debugging
-        useCORS: false, // Set to false for local files to avoid security errors
-        width: 1920,
-        height: 1080
+        scale: 3, // Higher resolution for readability
+        logging: true,
+        useCORS: false
       });
 
       console.log("Canvas generated successfully. Removing clone...");

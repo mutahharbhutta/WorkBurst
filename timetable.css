@@ -457,7 +457,9 @@ body.notebook {
 .screenshot-mode {
   width: 1920px !important;
   max-width: none !important;
-  height: 1080px !important;
+  height: auto !important;
+  /* Allow dynamic height to prevent clipping */
+  min-height: 1080px !important;
   aspect-ratio: 16 / 9 !important;
   position: fixed !important;
   top: 0 !important;
@@ -467,16 +469,57 @@ body.notebook {
   display: flex !important;
   flex-direction: column !important;
   justify-content: center !important;
-  padding: 80px !important;
+  padding: 100px !important;
   box-sizing: border-box !important;
   border: none !important;
   overflow: visible !important;
 }
 
+.screenshot-mode .university-header h2 {
+  font-size: 32px !important;
+  margin-bottom: 12px !important;
+}
+
+.screenshot-mode .university-header h3 {
+  font-size: 28px !important;
+  margin-bottom: 10px !important;
+}
+
+.screenshot-mode .university-header p {
+  font-size: 24px !important;
+  margin-bottom: 15px !important;
+}
+
 .screenshot-mode .timetable {
   width: 100% !important;
-  font-size: 20px !important;
+  font-size: 22px !important;
   border-collapse: collapse !important;
+}
+
+.screenshot-mode .timetable th {
+  padding: 20px !important;
+  font-size: 20px !important;
+}
+
+.screenshot-mode .timetable td {
+  padding: 24px !important;
+}
+
+.screenshot-mode .subject-name {
+  font-size: 24px !important;
+  margin-bottom: 10px !important;
+}
+
+.screenshot-mode .instructor,
+.screenshot-mode .time,
+.screenshot-mode .room {
+  font-size: 18px !important;
+  font-weight: 600 !important;
+}
+
+.screenshot-mode .smart-room-tag {
+  font-size: 16px !important;
+  padding: 4px 10px !important;
 }
 
 @media (max-width: 768px) {
