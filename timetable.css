@@ -252,36 +252,68 @@ body.notebook {
 }
 
 /* Subject Colors */
-.linear-algebra {
-  background: #3b82f6;
+/* Subject Colors - Unified Green Theme */
+.course-cell {
+  background: #a2d165; /* Light green from image */
+  color: #000000;
+  position: relative;
 }
 
-.data-structures {
-  background: #10b981;
+.course-cell .subject-name {
+  color: #000000;
+  font-weight: 700;
 }
 
-.calculus {
-  background: #f59e0b;
+.course-cell .time,
+.course-cell .room,
+.course-cell .instructor {
+  color: #1a1a1a;
+  font-size: 11px;
+  font-weight: 500;
 }
 
-.discrete {
-  background: #ec4899;
+.course-cell.lab {
+  border-left: none; /* Removed existing lab border style if not needed, or keep for distinction */
+  /* The image doesn't show a distinct border style for labs, just the text */
 }
 
-.coal {
-  background: #8b5cf6;
+.smart-room-tag {
+  background: #ffffff;
+  color: #000000;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 700;
+  display: inline-block;
+  margin-top: 4px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.1);
 }
 
-.intro-ds {
-  background: #06b6d4;
+/* Room Strip Header */
+.room-row td {
+  background: #d1d5db; /* Gray strip */
+  color: #000000;
+  font-weight: 700;
+  text-align: center;
+  padding: 4px;
+  font-size: 12px;
+  border: 1px solid #999;
 }
 
-.data-structures-lab {
-  background: #14b8a6;
+/* Header updates to match image */
+.timetable thead th {
+  background: #000000;
+  color: #ffffff;
+  border-color: #333;
 }
 
-.lab {
-  border-left: 4px solid rgba(255, 255, 255, 0.8);
+.day-cell {
+  background: #000000;
+  color: #ffffff;
+  border-color: #333;
+  vertical-align: middle;
+  text-align: center;
+  font-size: 14px;
 }
 
 /* Footer */

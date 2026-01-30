@@ -1,5 +1,6 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -11,6 +12,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
+
 <body>
   <div class="container">
     <header class="header">
@@ -23,99 +25,129 @@
     </header>
 
     <div id="timetableContent" class="timetable-wrapper">
+      <div class="university-header" style="text-align: center; margin-bottom: 20px; color: var(--text);">
+        <h2 style="font-size: 18px; font-weight: 700; margin-bottom: 4px;">FACULTY OF COMPUTING & INFORMATION TECHNOLOGY
+          New Campus</h2>
+        <h3 style="font-size: 16px; font-weight: 600; margin-bottom: 4px;">University of the Punjab</h3>
+        <p style="font-size: 14px; font-weight: 600;">TIME TABLE BS (DS) Semester Spring 2026 (MORNING) (w.e.f January
+          26-2026)</p>
+        <div style="background: #ccc; padding: 4px; margin-top: 8px; color: black; font-weight: 700;">MORNING</div>
+      </div>
+
       <table class="timetable">
         <thead>
           <tr>
-            <th class="day-column">Day/Time</th>
+            <th class="day-column">Days/ Time</th>
             <th>08:30-09:55</th>
-            <th>09:55-11:20</th>
+            <th>9:55-11:20</th>
             <th>11:20-12:45</th>
             <th>12:45-02:10</th>
           </tr>
         </thead>
         <tbody>
+          <!-- Monday -->
+          <tr class="room-row">
+            <td style="background:transparent; border:none;"></td>
+            <td colspan="4">BSDS F24 (IV) Room B-7</td>
+          </tr>
           <tr>
             <td class="day-cell">Monday</td>
-            <td class="subject-cell linear-algebra">
-              <div class="subject-name">Linear Algebra</div>
-              <div class="room">A-25</div>
+            <td class="course-cell">
+              <div class="subject-name">Analysis of Algorithms</div>
+              <div class="instructor">Dr. Muhammad Idrees</div>
             </td>
-            <td class="subject-cell data-structures">
-              <div class="subject-name">Data Structures</div>
-              <div class="room">A-25</div>
+            <td class="course-cell">
+              <div class="subject-name">Database Systems</div>
+              <div class="instructor">Dr. Muhammad Khurram Shahzad</div>
             </td>
-            <td class="subject-cell calculus">
-              <div class="subject-name">Calculus & Analytic Geometry</div>
-              <div class="room">B-9</div>
+            <td class="course-cell">
+              <div class="subject-name">Multivariable Calculus</div>
+              <div class="instructor">Prof. Dr. Malik Zawwar Hussain</div>
+              <div class="time">11:20-12:45</div>
             </td>
-            <td class="subject-cell discrete">
-              <div class="subject-name">Discrete Structures</div>
-              <div class="room">B-6</div>
+            <td class="course-cell" style="background:#a2d165;">
+              <!-- Empty Green Block -->
             </td>
+          </tr>
+
+          <!-- Tuesday -->
+          <tr class="room-row">
+            <td style="background:transparent; border:none;"></td>
+            <td colspan="4">BSDS F24 (IV) Room B-7</td>
           </tr>
           <tr>
             <td class="day-cell">Tuesday</td>
-            <td class="empty-cell"></td>
-            <td class="empty-cell"></td>
-            <td class="empty-cell"></td>
-            <td class="empty-cell"></td>
+            <td class="course-cell">
+              <div class="subject-name">Computer Networks</div>
+              <div class="instructor">Dr. Muhammad Nadeem Majeed</div>
+              <div class="time">08:30-10:30</div>
+            </td>
+            <td class="course-cell">
+              <div class="subject-name">Artificial Intelligence</div>
+              <div class="instructor">Dr. Syed Muhammad Ali</div>
+              <div class="time">10:30-12</div>
+            </td>
+            <td class="course-cell">
+              <div class="subject-name">Data Visualization</div>
+              <div class="instructor">Mr. Imran Javed</div>
+              <div class="time">12:45-02:30</div>
+              <div class="smart-room-tag">Smart room</div>
+            </td>
+            <td class="course-cell"></td>
+          </tr>
+
+          <!-- Wednesday -->
+          <tr class="room-row">
+            <td style="background:transparent; border:none;"></td>
+            <td colspan="4">BSDS F24 (IV) Room B-7</td>
           </tr>
           <tr>
             <td class="day-cell">Wednesday</td>
-            <td class="subject-cell lab coal">
-              <div class="subject-name">COAL LAB</div>
-              <div class="time">08:30-10:30</div>
-              <div class="room">A-25</div>
+            <td class="course-cell">
+              <div class="subject-name">Analysis of Algorithms</div>
+              <div class="instructor">Dr. Muhammad Idrees</div>
             </td>
-            <td class="subject-cell data-structures">
-              <div class="subject-name">Data Structures</div>
-              <div class="time">10:30-12:00</div>
-              <div class="room">A-25</div>
+            <td class="course-cell">
+              <div class="subject-name">Database Systems</div>
+              <div class="instructor">Dr. Muhammad Khurram Shahzad</div>
             </td>
-            <td class="subject-cell lab intro-ds">
-              <div class="subject-name">Introduction to Data Science LAB</div>
-              <div class="time">12:00-02:00</div>
-              <div class="room">LAB A</div>
+            <td class="course-cell">
+              <div class="subject-name">Multivariable Calculus</div>
+              <div class="instructor">Prof. Dr. Malik Zawwar Hussain</div>
+              <div class="time">11:20-12:45</div>
             </td>
-            <td class="subject-cell discrete">
-              <div class="subject-name">Discrete Structures</div>
-              <div class="time">02:00-03:35</div>
-              <div class="room">B-4</div>
+            <td class="course-cell">
+              <div class="subject-name">Database Systems Lab</div>
+              <div class="instructor">Mr. Farhan Ahmad Ch.</div>
+              <div class="time">02:00-05:00</div>
+              <div class="room" style="font-weight:700;">VENUE-LAB -B</div>
             </td>
+          </tr>
+
+          <!-- Thursday -->
+          <tr class="room-row">
+            <td style="background:transparent; border:none;"></td>
+            <td colspan="4">BSDS F24 (IV) Room B-7</td>
           </tr>
           <tr>
             <td class="day-cell">Thursday</td>
-            <td class="subject-cell coal">
-              <div class="subject-name">COAL</div>
+            <td class="course-cell">
+              <div class="subject-name">Computer Networks LAB</div>
+              <div class="instructor">Dr. Muhammad Nadeem Majeed</div>
               <div class="time">08:30-10:30</div>
-              <div class="room">B-7</div>
             </td>
-            <td class="empty-cell"></td>
-            <td class="subject-cell linear-algebra">
-              <div class="subject-name">Linear Algebra</div>
-              <div class="time">12:00-01:30</div>
-              <div class="room">B-7</div>
+            <td class="course-cell">
+              <div class="subject-name">Artificial Intelligence</div>
+              <div class="instructor">Dr. Syed Muhammad Ali</div>
+              <div class="time">10:30-12</div>
             </td>
-            <td class="empty-cell"></td>
-          </tr>
-          <tr>
-            <td class="day-cell">Friday</td>
-            <td class="subject-cell calculus">
-              <div class="subject-name">Calculus & Analytic Geometry</div>
-              <div class="time">08:30-09:55</div>
-              <div class="room">B-7</div>
+            <td class="course-cell">
+              <div class="subject-name">Data Visualization LAB</div>
+              <div class="instructor">Mr. Imran Javed</div>
+              <div class="time">12:30-02:30</div>
+              <div class="smart-room-tag">Smart room</div>
             </td>
-            <td class="subject-cell intro-ds">
-              <div class="subject-name">Introduction to Data Science</div>
-              <div class="time">11:00-01:00</div>
-              <div class="room">B-10</div>
-            </td>
-            <td class="empty-cell"></td>
-            <td class="subject-cell lab data-structures-lab">
-              <div class="subject-name">Data Structures LAB</div>
-              <div class="time">02:00-05:00</div>
-              <div class="room">LAB-A</div>
-            </td>
+            <td class="course-cell"></td>
           </tr>
         </tbody>
       </table>
@@ -130,4 +162,5 @@
 
   <script src="timetable.js"></script>
 </body>
+
 </html>

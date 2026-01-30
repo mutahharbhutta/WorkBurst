@@ -20,26 +20,26 @@ document.getElementById('downloadPDF').addEventListener('click', async () => {
   try {
     const { jsPDF } = window.jspdf;
     const content = document.getElementById('timetableContent');
-    
+
     // Use html2canvas to capture the timetable
     const canvas = await html2canvas(content, {
       scale: 2,
       backgroundColor: '#ffffff',
       logging: false
     });
-    
+
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({
       orientation: 'landscape',
       unit: 'mm',
       format: 'a4'
     });
-    
+
     const imgWidth = 280;
     const imgHeight = (canvas.height * imgWidth) / canvas.width;
-    
+
     pdf.addImage(imgData, 'PNG', 10, 10, imgWidth, imgHeight);
-    
+
     // Add footer to PDF
     const pageHeight = pdf.internal.pageSize.getHeight();
     pdf.setFontSize(10);
@@ -47,7 +47,7 @@ document.getElementById('downloadPDF').addEventListener('click', async () => {
     pdf.text('Developed by Mutahhar Bhutta | ClassSync - Task Management System', 10, pageHeight - 10);
     pdf.text('GitHub: github.com/mutahharbhutta', 10, pageHeight - 5);
 
-    pdf.save('BSDSF24M-Timetable-ClassSync.pdf');
+    pdf.save('BSDS-Spring2026-Timetable.pdf');
 
     button.innerHTML = '✓ Downloaded!';
     setTimeout(() => {
@@ -71,14 +71,14 @@ document.getElementById('downloadExcel').addEventListener('click', () => {
 
   try {
     const timetableData = [
-      ['My Class Timetable', '', '', '', ''],
+      ['FACULTY OF COMPUTING & INFORMATION TECHNOLOGY New Campus', '', '', '', ''],
+      ['University of the Punjab - BS (DS) Spring 2026', '', '', '', ''],
       [''],
-      ['Day/Time', '08:30-09:55', '09:55-11:20', '11:20-12:45', '12:45-02:10'],
-      ['Monday', 'Linear Algebra', 'Data Structures', 'Calculus & Analytic Geometry', 'Discrete Structures (B-6)'],
-      ['Tuesday', '', '', '', ''],
-      ['Wednesday', 'COAL LAB (08:30-10:30)', 'Data Structures (10:30-12:00)', 'Introduction to Data Science LAB (12:00-02:00, LAB A)', 'Discrete Structures (02:00-03:35, B-4)'],
-      ['Thursday', 'COAL (08:30-10:30)', '', 'Linear Algebra (12:00-01:30)', ''],
-      ['Friday', 'Calculus & Analytic Geometry (08:30-09:55, B-7)', 'Introduction to Data Science (11:00-01:00, B-10)', '', 'Data Structures LAB (02:00-05:00, LAB-A)'],
+      ['Day/Time', '08:30-09:55', '9:55-11:20', '11:20-12:45', '12:45-02:10'],
+      ['Monday', 'Analysis of Algorithms (Dr. Idrees)', 'Database Systems (Dr. Khurram)', 'Multivariable Calculus (Dr. Malik)', ''],
+      ['Tuesday', 'Computer Networks (08:30-10:30)', 'Artificial Intelligence (10:30-12:00)', 'Data Visualization (12:45-02:30)', ''],
+      ['Wednesday', 'Analysis of Algorithms', 'Database Systems', 'Multivariable Calculus', 'Database Systems Lab (02:00-05:00, LAB-B)'],
+      ['Thursday', 'Computer Networks LAB (08:30-10:30)', 'Artificial Intelligence (10:30-12:00)', 'Data Visualization LAB (12:30-02:30)', ''],
       [''],
       [''],
       ['Developed by Mutahhar Bhutta'],
@@ -87,7 +87,7 @@ document.getElementById('downloadExcel').addEventListener('click', () => {
     ];
 
     // Convert to CSV
-    const csv = timetableData.map(row => 
+    const csv = timetableData.map(row =>
       row.map(cell => `"${cell}"`).join(',')
     ).join('\n');
 
@@ -95,11 +95,11 @@ document.getElementById('downloadExcel').addEventListener('click', () => {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
     const url = URL.createObjectURL(blob);
-    
+
     link.setAttribute('href', url);
-    link.setAttribute('download', 'BSDSF24M-ClassSync.csv');
+    link.setAttribute('download', 'BSDS-Spring2026-Timetable.csv');
     link.style.visibility = 'hidden';
-    
+
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
