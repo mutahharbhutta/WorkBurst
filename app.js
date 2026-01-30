@@ -825,19 +825,7 @@ function loadIntoForm(id) {
   $('#link').value = it.link || '';
   $('#notes').value = it.notes || '';
 
-  // Load existing images
-  selectedImages = [];
-  if (it.images && it.images.length > 0) {
-    it.images.forEach((url, idx) => {
-      selectedImages.push({
-        dataUrl: url,
-        id: Date.now() + idx,
-        existing: true,
-        url: url
-      });
-    });
-    renderImagePreviews();
-  }
+
 
   $('#title').focus();
 
@@ -1039,27 +1027,13 @@ $('#itemForm').addEventListener('submit', async (e) => {
   }
 
   try {
-    let imageUrls = [];
 
-    // Handle images
-    if (selectedImages.length > 0) {
-      const newImages = selectedImages.filter(img => !img.existing);
-      const existingImages = selectedImages.filter(img => img.existing).map(img => img.url);
-
-      if (newImages.length > 0) {
-        const taskId = id || db.collection('items').doc().id;
-        const uploadedUrls = await uploadImages(taskId);
-        imageUrls = [...existingImages, ...uploadedUrls];
-      } else {
-        imageUrls = existingImages;
-      }
-    }
 
     const optimistic = {
       id: id || `__local_${Date.now()}`,
       ...payload,
       dueAt,
-      images: imageUrls
+
     };
 
     const local = (window.__ALL_ITEMS__ || []).slice();
