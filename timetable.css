@@ -456,6 +456,7 @@ body.notebook {
 /* Screenshot Export Styles */
 .screenshot-mode {
   width: 1920px !important;
+  max-width: none !important;
   height: 1080px !important;
   aspect-ratio: 16 / 9 !important;
   position: fixed !important;
@@ -465,30 +466,17 @@ body.notebook {
   background: var(--bg) !important;
   display: flex !important;
   flex-direction: column !important;
-  padding: 60px !important;
-  box-sizing: border-box !important;
-}
-
-.screenshot-mode .header {
-  margin-bottom: 40px !important;
-}
-
-.screenshot-mode .header-actions {
-  display: none !important;
-}
-
-.screenshot-mode .timetable-wrapper {
-  flex-grow: 1 !important;
-  display: flex !important;
-  align-items: center !important;
   justify-content: center !important;
+  padding: 80px !important;
+  box-sizing: border-box !important;
   border: none !important;
+  overflow: visible !important;
 }
 
 .screenshot-mode .timetable {
   width: 100% !important;
-  font-size: 18px !important;
-  /* Larger text for export */
+  font-size: 20px !important;
+  border-collapse: collapse !important;
 }
 
 @media (max-width: 768px) {

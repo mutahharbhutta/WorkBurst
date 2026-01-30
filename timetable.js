@@ -37,9 +37,9 @@ document.addEventListener('DOMContentLoaded', () => {
       return;
     }
 
-    const container = document.getElementById('timetableContainer');
+    const container = document.getElementById('timetableContent');
     if (!container) {
-      console.error("Critical: 'timetableContainer' not found.");
+      console.error("Critical: 'timetableContent' not found.");
       return;
     }
 
