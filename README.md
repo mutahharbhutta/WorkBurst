@@ -1,34 +1,34 @@
-# 🎓 WorkBurst – Enhanced Task Manager
+# 🎓 TaskLog – Professional Student Task Diary
 
-> **Live Demo:** https://mutahharbhutta.github.io/WorkBurst
+> **Repository:** https://github.com/mutahharbhutta/WorkBurst
 
 A comprehensive task management system designed for students to track assignments, quizzes, and lab work with advanced features including weekly grouping, multiple themes, timetable integration, and notification support.
 
 ---
 
-## 🚀 New Features (Enhanced Version)
+## 🚀 New Features (TaskLog Enhanced)
 
 ### ✨ Core Enhancements
 
 * **📅 Weekly Task Grouping** – Tasks are automatically organized by week (This Week, Next Week, etc.)
 * **📆 Day of Week Display** – Shows the day of the week for each task's due date
-* **🎨 Multiple Themes** – 7 beautiful themes: Dark, Light, Aesthetic, Cat, Space, Forest, Ocean
+* **🎨 Professional Themes** – Slate & Emerald (Default), Classic Light, and more.
 * **📋 Timetable Feature** – View and download your class schedule as PDF or Excel
 * ** Last Updated Tracker** – Displays when tasks were last modified
 * **📝 Multi-line Notes** – Notes field now supports multi-line text input
 * **🔔 Notification System** – Browser notifications 12 hours before task deadlines
 * **💡 Loading Tips** – Rotating productivity tips during app loading
-* **🎯 Improved UI/UX** – Better spacing, readability, and visual hierarchy
+* **🎯 Improved UI/UX** – Premium "Slate & Emerald" design with glassmorphism.
 
 ---
 
 ## 📁 File Structure
 
 ```
-WorkBurst/
+TaskLog/
 ├── index.html          # Main task manager page
-├── app.js             # Enhanced task management logic
-├── style.css          # Enhanced styles with multiple themes
+├── app.js             # Task management logic
+├── style.css          # Enhanced professional styles
 ├── timetable.html     # Class timetable viewer
 ├── timetable.css      # Timetable styling
 ├── timetable.js       # Download functionality (PDF/Excel)
@@ -67,7 +67,7 @@ service cloud.firestore {
 ```
 
 ### 4. Deploy to GitHub Pages
-1. Create a new repository: `WorkBurst`
+1. Create a new repository
 2. Upload all files
 3. Go to Settings → Pages
 4. Select main branch and root folder
@@ -78,13 +78,9 @@ service cloud.firestore {
 ## 🎨 Theme System
 
 ### Available Themes
-- **🌙 Dark** – Default dark mode with purple accents
-- **☀️ Light** – Clean light mode
-- **✨ Aesthetic** – Pink and pastel colors
-- **🐱 Cat** – Warm brown tones
-- **🚀 Space** – Purple cosmic theme
-- **🌲 Forest** – Green nature theme
-- **🌊 Ocean** – Blue aquatic theme
+- **🌑 Professional Dark** – Default Slate & Emerald theme
+- **☀️ Classic Light** – Clean white/gray theme
+- **✨ Modern Slate** – Deep blue/slate theme
 
 ### How to Use Themes
 Click the 🎨 button in the navigation bar and select your preferred theme. Your choice is saved automatically.
@@ -266,11 +262,11 @@ Fully optimized for:
 
 **Mutahhar Bhutta**
 - GitHub: [@mutahharbhutta](https://github.com/mutahharbhutta)
-- Project: [WorkBurst](https://mutahharbhutta.github.io/WorkBurst)
 
 ---
 
 ## 📄 License
+
 
 © 2025 Mutahhar Bhutta. All rights reserved.
 

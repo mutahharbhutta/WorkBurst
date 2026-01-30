@@ -1,7 +1,7 @@
 {
-  "name": "ClassSync - Class Diary & Task Manager",
-  "short_name": "ClassSync",
-  "description": "Your complete class companion - track assignments, notes with images, and never miss a deadline",
+  "name": "TaskLog - Student Task Diary",
+  "short_name": "TaskLog",
+  "description": "TaskLog - Your professional student class diary and task management system.",
   "start_url": "./index.html",
   "scope": "./",
   "display": "standalone",

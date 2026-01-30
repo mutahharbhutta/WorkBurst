@@ -1,79 +1,80 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <meta name="description" content="ClassSync - Your Ultimate Class Diary & Task Management System">
-  <meta name="theme-color" content="#6366f1">
+  <meta name="description" content="TaskLog - Professional Student Task Management">
+  <meta name="theme-color" content="#0f172a">
   <meta name="apple-mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="ClassSync">
-  
-  <title>ClassSync - Class Diary & Task Manager</title>
-  
+  <meta name="apple-mobile-web-app-title" content="TaskLog">
+
+  <title>TaskLog - Student Task Diary</title>
+
   <link rel="manifest" href="manifest.json">
   <link rel="apple-touch-icon" href="icons/icon-152x152.png">
   <link rel="icon" type="image/png" href="icons/icon-72x72.png">
-  
+
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap"
+    rel="stylesheet">
   <link rel="stylesheet" href="style.css" />
 
-<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-storage-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-firestore-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-messaging-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/12.3.0/firebase-storage-compat.js"></script>
 
 </head>
+
 <body>
   <!-- Preloader -->
   <div class="preloader" id="preloader">
     <div class="loader-animation">
       <div class="loader-spinner"></div>
-      <div class="loader-text">Loading your class diary...</div>
-      <div class="loader-tip" id="loaderTip">Stay organized, stay ahead</div>
+      <div class="loader-text">Loading TaskLog...</div>
+      <div class="loader-tip" id="loaderTip">Organize your academic life</div>
     </div>
   </div>
 
-<!-- Navigation with Analytics -->
-<nav class="navbar">
-  <div class="nav-container">
-    <a href="index.html" class="nav-brand">
-      <span class="brand-icon">📚</span>
-      ClassSync
-    </a>
-    
-    
-    <div class="nav-actions">
-      <button class="icon-btn success" id="timetableBtn" title="Timetable">
-        <span>📅</span>
-      </button>
-      
-      <div class="theme-selector">
-        <button class="icon-btn" id="themeBtn" title="Change Theme">
-          <span>🎨</span>
+  <!-- Navigation with Analytics -->
+  <nav class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="nav-brand">
+        <span class="brand-icon">📑</span>
+        TaskLog
+      </a>
+
+
+      <div class="nav-actions">
+        <button class="icon-btn success" id="timetableBtn" title="Timetable">
+          <span>📅</span>
         </button>
-        <div class="theme-dropdown" id="themeDropdown">
-          <button data-theme="darkest">Darkest Black</button>
-          <button data-theme="classic">Classic</button>
-          <button data-theme="modern">Modern</button>
-          <button data-theme="chalkboard">Chalkboard</button>
-          <button data-theme="notebook">Notebook</button>
+
+        <div class="theme-selector">
+          <button class="icon-btn" id="themeBtn" title="Change Theme">
+            <span>🎨</span>
+          </button>
+          <div class="theme-dropdown" id="themeDropdown">
+            <button data-theme="darkest">Professional Dark</button>
+            <button data-theme="classic">Classic Light</button>
+            <button data-theme="modern">Modern Slate</button>
+          </div>
         </div>
+
+        <button class="icon-btn" id="loginBtn" title="Admin Login">
+          <span>🔐</span>
+        </button>
+
+        <button class="icon-btn danger admin-only" id="logoutBtn" title="Logout">
+          <span>🚪</span>
+        </button>
       </div>
-      
-      <button class="icon-btn" id="loginBtn" title="Admin Login">
-        <span>🔐</span>
-      </button>
-      
-      <button class="icon-btn danger admin-only" id="logoutBtn" title="Logout">
-        <span>🚪</span>
-      </button>
     </div>
-  </div>
-</nav>
+  </nav>
 
   <!-- Main Container -->
   <div class="container">
@@ -82,8 +83,8 @@
       <div class="install-content">
         <div class="install-icon">📱</div>
         <div class="install-text">
-          <strong>Install ClassSync</strong>
-          <p>Add to home screen for offline access</p>
+          <strong>Install TaskLog</strong>
+          <p>Add to home screen for quick access</p>
         </div>
       </div>
       <div class="install-actions">
@@ -92,10 +93,10 @@
       </div>
     </div>
 
-    <!-- Hero Section -->
+    <!-- Hero / Dashboard Header -->
     <div class="hero">
-      <h2>📖 Class Diary & Task Manager</h2>
-      <p>Your complete class companion - track assignments, notes, and deadlines</p>
+      <h2>Student Diary</h2>
+      <p>Manage assignments, quizzes, and academic tasks efficiently.</p>
       <div class="last-updated" id="lastUpdated">
         <!-- <span class="update-icon">🔄</span> -->
         <span id="updateTime">No updates yet</span>
@@ -127,14 +128,14 @@
         <h3>No tasks found</h3>
         <p>Try adjusting your filters or add a new task</p>
       </div>
-      
+
       <div id="weeklyTasks"></div>
     </section>
 
     <!-- Admin Panel -->
     <section class="admin-section admin-only">
       <h2 class="section-title">📝 Admin Panel</h2>
-      
+
       <!-- Notification Settings -->
       <div class="notification-settings">
         <h3>🔔 Push Notifications</h3>
@@ -149,7 +150,7 @@
 
       <form id="itemForm" autocomplete="off">
         <input type="hidden" id="itemId" />
-        
+
         <div class="field">
           <label>Type</label>
           <select id="type" class="input" required>
@@ -189,7 +190,7 @@
         <div class="field full">
           <label>Notes with Images (optional)</label>
           <textarea id="notes" class="input textarea" placeholder="Add your notes here..." rows="4"></textarea>
-          
+
           <!-- Image Upload Section -->
           <div class="image-upload-section">
             <label for="imageUpload" class="image-upload-label">
@@ -242,9 +243,12 @@
   <!-- Footer -->
   <footer class="footer">
     <div class="footer-content">
-      <p>Developed by <a href="https://github.com/mutahharbhutta" target="_blank" rel="noopener" class="animated-name">Mutahhar Bhutta</a> | © 2025</p>
+      <p>Developed by <a href="https://github.com/mutahharbhutta" target="_blank" rel="noopener"
+          class="animated-name">Mutahhar Bhutta</a> | © 2025</p>
       <p>Crafted with <span class="heart">❤</span></p>
-      <p><a href="https://mutahharbhutta.github.io/pucit-cgpa-calculator/" target="_blank" rel="noopener">PUCIT GPA/CGPA Calculator</a> | <a href="https://github.com/mutahharbhutta/ClassSync" target="_blank" rel="noopener">GitHub</a></p>
+      <p><a href="https://mutahharbhutta.github.io/pucit-cgpa-calculator/" target="_blank" rel="noopener">PUCIT GPA/CGPA
+          Calculator</a> | <a href="https://github.com/mutahharbhutta/ClassSync" target="_blank"
+          rel="noopener">GitHub</a></p>
     </div>
   </footer>
 
@@ -262,4 +266,5 @@
 
   <script src="app.js"></script>
 </body>
+
 </html>

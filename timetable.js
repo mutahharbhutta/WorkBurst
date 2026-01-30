@@ -44,10 +44,10 @@ document.getElementById('downloadPDF').addEventListener('click', async () => {
     const pageHeight = pdf.internal.pageSize.getHeight();
     pdf.setFontSize(10);
     pdf.setTextColor(100, 100, 100);
-    pdf.text('Developed by Mutahhar Bhutta | ClassSync - Task Management System', 10, pageHeight - 10);
+    pdf.text('Developed by Mutahhar Bhutta | TaskLog - Student Task Diary', 10, pageHeight - 10);
     pdf.text('GitHub: github.com/mutahharbhutta', 10, pageHeight - 5);
 
-    pdf.save('BSDS-Spring2026-Timetable.pdf');
+    pdf.save('TaskLog-Timetable-Spring2026.pdf');
 
     button.innerHTML = '✓ Downloaded!';
     setTimeout(() => {
@@ -97,7 +97,7 @@ document.getElementById('downloadExcel').addEventListener('click', () => {
     const url = URL.createObjectURL(blob);
 
     link.setAttribute('href', url);
-    link.setAttribute('download', 'BSDS-Spring2026-Timetable.csv');
+    link.setAttribute('download', 'TaskLog-Timetable.csv');
     link.style.visibility = 'hidden';
 
     document.body.appendChild(link);

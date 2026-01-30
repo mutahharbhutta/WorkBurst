@@ -1,9 +1,9 @@
 /* ============================
-   Service Worker for WorkBurst PWA
+   Service Worker for TaskLog PWA
    Handles caching and push notifications
 ============================ */
 
-const CACHE_NAME = 'workburst-v1.0.1';
+const CACHE_NAME = 'tasklog-v1.0.1';
 const urlsToCache = [
   './',
   './index.html',
@@ -24,7 +24,7 @@ const urlsToCache = [
 ============================ */
 self.addEventListener('install', (event) => {
   console.log('[Service Worker] Installing...');
-  
+
   event.waitUntil(
     caches.open(CACHE_NAME)
       .then((cache) => {
@@ -44,7 +44,7 @@ self.addEventListener('install', (event) => {
 ============================ */
 self.addEventListener('activate', (event) => {
   console.log('[Service Worker] Activating...');
-  
+
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -64,10 +64,10 @@ self.addEventListener('activate', (event) => {
 ============================ */
 self.addEventListener('fetch', (event) => {
   // Skip cross-origin requests
-  if (!event.request.url.startsWith(self.location.origin) && 
-      !event.request.url.startsWith('https://fonts.googleapis.com') &&
-      !event.request.url.startsWith('https://www.gstatic.com') &&
-      !event.request.url.startsWith('https://fonts.gstatic.com')) {
+  if (!event.request.url.startsWith(self.location.origin) &&
+    !event.request.url.startsWith('https://fonts.googleapis.com') &&
+    !event.request.url.startsWith('https://www.gstatic.com') &&
+    !event.request.url.startsWith('https://fonts.gstatic.com')) {
     return;
   }
 
@@ -103,7 +103,7 @@ self.addEventListener('push', (event) => {
   console.log('[Service Worker] Push notification received');
 
   const data = event.data ? event.data.json() : {};
-  const title = data.title || 'WorkBurst Reminder';
+  const title = data.title || 'TaskLog Reminder';
   const options = {
     body: data.body || 'You have a task due soon!',
     icon: './icons/icon-192x192.png',

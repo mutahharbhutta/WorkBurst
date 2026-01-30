@@ -64,7 +64,7 @@ async function initializeAnalytics() {
     // Set up presence system
     const uid = 'user_' + Math.random().toString(36).substr(2, 9);
     currentUserPresenceRef = db.collection('presence').doc(uid);
-    
+
     // Mark user as online
     await currentUserPresenceRef.set({
       online: true,
@@ -111,7 +111,7 @@ setInterval(async () => {
       .where('lastSeen', '<', firebase.firestore.Timestamp.fromDate(cutoff))
       .limit(50)
       .get();
-    
+
     const batch = db.batch();
     snapshot.docs.forEach(doc => batch.delete(doc.ref));
     if (!snapshot.empty) await batch.commit();
@@ -209,13 +209,13 @@ async function initializeMessaging() {
       console.log('Notification permission denied');
       return false;
     }
-    
+
     fcmToken = await messaging.getToken({
       vapidKey: 'BNdK4SCRa8WbmM_bqj51En-u3uzYFr4omivYxxyZQ4GA0tImdI5bpf5PQ6J015474caZlT5Q7mEUPv26_uYFiM4'
     });
-    
+
     console.log('FCM Token:', fcmToken);
-    
+
     if (auth.currentUser) {
       await db.collection('users').doc(auth.currentUser.uid).set({
         fcmToken: fcmToken,
@@ -223,7 +223,7 @@ async function initializeMessaging() {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       }, { merge: true });
     }
-    
+
     messaging.onMessage((payload) => {
       console.log('Foreground message received:', payload);
       new Notification(payload.notification.title, {
@@ -234,7 +234,7 @@ async function initializeMessaging() {
         requireInteraction: true
       });
     });
-    
+
     return true;
   } catch (error) {
     console.error('FCM initialization error:', error);
@@ -253,7 +253,7 @@ if ('serviceWorker' in navigator) {
     try {
       swRegistration = await navigator.serviceWorker.register('./sw.js');
       console.log('Service Worker registered:', swRegistration);
-      
+
       swRegistration.addEventListener('updatefound', () => {
         const newWorker = swRegistration.installing;
         newWorker.addEventListener('statechange', () => {
@@ -269,7 +269,7 @@ if ('serviceWorker' in navigator) {
       console.error('Service Worker registration failed:', error);
     }
   });
-  
+
   navigator.serviceWorker.addEventListener('controllerchange', () => {
     window.location.reload();
   });
@@ -289,7 +289,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const installBtn = $('#installBtn');
   const dismissBtn = $('#dismissInstall');
   const installBanner = $('#installBanner');
-  
+
   if (installBtn) {
     installBtn.addEventListener('click', async () => {
       if (!deferredPrompt) return;
@@ -300,7 +300,7 @@ document.addEventListener('DOMContentLoaded', () => {
       if (installBanner) installBanner.style.display = 'none';
     });
   }
-  
+
   if (dismissBtn) {
     dismissBtn.addEventListener('click', () => {
       if (installBanner) installBanner.style.display = 'none';
@@ -372,7 +372,7 @@ function getWeekLabel(d) {
   const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
   const taskDate = new Date(d.getFullYear(), d.getMonth(), d.getDate());
   const diffDays = Math.floor((taskDate - today) / 86400000);
-  
+
   if (diffDays < 0) return 'Overdue Tasks';
   if (diffDays < 7) return 'This Week';
   if (diffDays < 14) return 'Next Week';
@@ -455,7 +455,7 @@ $('#cancelLogin').addEventListener('click', () => {
 $('#confirmLogin').addEventListener('click', async () => {
   const email = $('#email').value.trim();
   const password = $('#password').value;
-  
+
   try {
     await auth.signInWithEmailAndPassword(email, password);
     loginDialog.close();
@@ -675,11 +675,11 @@ function renderWeeklyTasks() {
   if (list.length === 0) return;
 
   const weekGroups = {};
-  
+
   list.forEach(task => {
     const due = task.dueAt && task.dueAt.toDate ? task.dueAt.toDate() : new Date(task.dueAt);
     const weekLabel = getWeekLabel(due);
-    
+
     if (!weekGroups[weekLabel]) {
       weekGroups[weekLabel] = [];
     }
@@ -687,24 +687,24 @@ function renderWeeklyTasks() {
   });
 
   const weekOrder = ['Overdue Tasks', 'This Week', 'Next Week', 'In 2 Weeks', 'In 3-4 Weeks', 'Later'];
-  
+
   weekOrder.forEach(weekLabel => {
     if (weekGroups[weekLabel] && weekGroups[weekLabel].length > 0) {
       const weekSection = document.createElement('div');
       weekSection.className = 'week-group';
-      
+
       const weekHeader = document.createElement('div');
       weekHeader.className = 'week-header';
       weekHeader.innerHTML = `
         <div class="week-title">${weekLabel}</div>
         <div class="week-count">${weekGroups[weekLabel].length} task${weekGroups[weekLabel].length !== 1 ? 's' : ''}</div>
       `;
-      
+
       const grid = document.createElement('div');
       grid.className = 'grid';
-      
+
       const now = Date.now();
-      
+
       weekGroups[weekLabel].forEach(it => {
         const due = it.dueAt && it.dueAt.toDate ? it.dueAt.toDate() : new Date(it.dueAt);
         const overdue = (it.status !== 'completed') && (due.getTime() < now);
@@ -747,16 +747,16 @@ function renderWeeklyTasks() {
           
           ${it.link ? `<a class="card-link" href="${escapeAttr(it.link)}" target="_blank" rel="noopener">Open Link</a>` : ''}
         `;
-        
+
         el.addEventListener('click', (e) => {
           if (!e.target.closest('.icon-btn') && !e.target.closest('.card-link')) {
             openTaskModal(it);
           }
         });
-        
+
         grid.appendChild(el);
       });
-      
+
       weekSection.appendChild(weekHeader);
       weekSection.appendChild(grid);
       weeklyTasksContainer.appendChild(weekSection);
@@ -877,7 +877,7 @@ function loadIntoForm(id) {
   $('#dueTime').value = `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`;
   $('#link').value = it.link || '';
   $('#notes').value = it.notes || '';
-  
+
   // Load existing images
   selectedImages = [];
   if (it.images && it.images.length > 0) {
@@ -891,7 +891,7 @@ function loadIntoForm(id) {
     });
     renderImagePreviews();
   }
-  
+
   $('#title').focus();
 
   if (deleteBtn) {
@@ -979,7 +979,7 @@ async function scheduleNotification(title, dueDate) {
       sent: false,
       createdAt: firebase.firestore.FieldValue.serverTimestamp()
     });
-    
+
     console.log(`Notification scheduled in Firestore for: ${title} at ${notificationTime.toLocaleString()}`);
     updateNotificationStatus();
   } catch (error) {
@@ -993,18 +993,18 @@ async function scheduleNotification(title, dueDate) {
 async function updateNotificationStatus() {
   const statusEl = $('#notificationStatus');
   if (!statusEl || !auth.currentUser) return;
-  
+
   try {
     const snapshot = await db.collection('scheduledNotifications')
       .where('userId', '==', auth.currentUser.uid)
       .where('sent', '==', false)
       .get();
-    
+
     const upcoming = snapshot.docs.filter(doc => {
       const notifTime = doc.data().notificationTime.toDate();
       return notifTime > new Date();
     });
-    
+
     if (upcoming.length > 0) {
       statusEl.innerHTML = `📬 ${upcoming.length} reminder${upcoming.length !== 1 ? 's' : ''} scheduled`;
       statusEl.style.color = 'var(--success)';
@@ -1027,7 +1027,7 @@ $('#enableNotifications')?.addEventListener('change', async (e) => {
       e.target.checked = false;
       return;
     }
-    
+
     if (!('Notification' in window)) {
       alert('This browser does not support notifications');
       e.target.checked = false;
@@ -1035,13 +1035,13 @@ $('#enableNotifications')?.addEventListener('change', async (e) => {
     }
 
     const success = await initializeMessaging();
-    
+
     if (success) {
       alert('Notifications enabled! You will receive reminders 12 hours before deadlines, even when the app is closed.');
       localStorage.setItem('notificationsEnabled', 'true');
       updateNotificationStatus();
-      
-      new Notification('ClassSync Notifications Active', {
+
+      new Notification('TaskLog Notifications Active', {
         body: 'You will receive reminders even when the browser is closed',
         icon: './icons/icon-192x192.png',
         badge: './icons/icon-72x72.png'
@@ -1094,12 +1094,12 @@ $('#itemForm').addEventListener('submit', async (e) => {
 
   try {
     let imageUrls = [];
-    
+
     // Handle images
     if (selectedImages.length > 0) {
       const newImages = selectedImages.filter(img => !img.existing);
       const existingImages = selectedImages.filter(img => img.existing).map(img => img.url);
-      
+
       if (newImages.length > 0) {
         const taskId = id || db.collection('items').doc().id;
         const uploadedUrls = await uploadImages(taskId);
@@ -1109,13 +1109,13 @@ $('#itemForm').addEventListener('submit', async (e) => {
       }
     }
 
-    const optimistic = { 
-      id: id || `__local_${Date.now()}`, 
-      ...payload, 
+    const optimistic = {
+      id: id || `__local_${Date.now()}`,
+      ...payload,
       dueAt,
       images: imageUrls
     };
-    
+
     const local = (window.__ALL_ITEMS__ || []).slice();
 
     if (id) {
@@ -1153,9 +1153,9 @@ $('#itemForm').addEventListener('submit', async (e) => {
         updatedAt: firebase.firestore.FieldValue.serverTimestamp()
       });
     }
-    
+
     await scheduleNotification(payload.title, dueAt);
-    
+
     fillForm();
     submitBtn.innerHTML = '✅ Saved!';
     setTimeout(() => {
@@ -1176,7 +1176,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const enabled = localStorage.getItem('notificationsEnabled') === 'true';
   if ($('#enableNotifications')) {
     $('#enableNotifications').checked = enabled;
-    
+
     if (enabled && auth.currentUser) {
       await initializeMessaging();
       updateNotificationStatus();
